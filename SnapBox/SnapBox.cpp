@@ -1,0 +1,440 @@
+// SnapBox.cpp : Defines the entry point for the application.
+//
+
+#include "stdafx.h"
+#include "SnapBox.h"
+#include "SnapBoxBase.h"
+#include "CaptureBox.h"
+#include "Options.h"
+#include "SnapHook.h"
+#include "SizeMarks.h"
+#include "LimitSingleInstance.h"
+#include <initguid.h>
+#include <ShellScalingAPI.h>
+#pragma comment(lib, "Shcore.lib")
+
+using namespace Gdiplus;
+using namespace xercesc;
+
+#define MAX_LOADSTRING 100
+
+// Global Variables:
+HINSTANCE hInst;
+ULONG_PTR gdiplusToken;
+TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
+CLimitSingleInstance singleInstance(_T("Local\\cb2d15e2-d0f2-4ecd-892f-3177231b33b9"));
+
+HMENU hNotifyMenu, hCaptureMenu;
+HCURSOR hCursorArrow;
+HCURSOR hCursorMove;
+HCURSOR hCursorNS;
+HCURSOR hCursorEW;
+HCURSOR hCursorNESW;
+HCURSOR hCursorNWSE;
+Bitmap *bScreen;
+HBITMAP hScreen;
+POINT dragMin;
+
+// Forward declarations of functions included in this code module:
+ATOM				MyRegisterClass(HINSTANCE hInstance);
+HWND				InitInstance(HINSTANCE, int);
+LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+
+int APIENTRY _tWinMain(HINSTANCE hInstance,
+                     HINSTANCE hPrevInstance,
+                     LPTSTR    lpCmdLine,
+                     int       nCmdShow)
+{
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+
+    // Ensure that the app isn't auto scaled based upon DPI
+    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+
+    INITCOMMONCONTROLSEX initCtrls;
+    initCtrls.dwSize = sizeof(initCtrls);
+    initCtrls.dwICC = ICC_STANDARD_CLASSES | ICC_UPDOWN_CLASS | ICC_LINK_CLASS;
+    InitCommonControlsEx(&initCtrls);
+
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
+    GdiplusStartupInput input;
+    GdiplusStartup(&gdiplusToken, &input, NULL);
+
+    dragMin.x = GetSystemMetrics(SM_CXDRAG);
+    dragMin.y = GetSystemMetrics(SM_CYDRAG);
+
+    // TODO: Place code here.
+    MSG msg;
+
+    // Initialize global strings and window classes
+    LoadString(hInstance, IDC_SNAPBOX, szWindowClass, MAX_LOADSTRING);
+    BaseRegisterClass(hInstance);
+    MyRegisterClass(hInstance);
+    RegisterCaptureBoxClass(hInstance);
+    InitSizeMarks(hInstance);
+
+    try
+    {
+        XMLPlatformUtils::Initialize();
+    }
+    catch (const XMLException& toCatch)
+    {
+#ifdef _UNICODE
+        LPCTSTR eMsg = toCatch.getMessage();
+#else
+        TCHAR eMsg[512];
+        XMLString::transcode(toCatch.getMessage(), eMsg, 511);
+#endif
+
+        MessageBox(NULL, eMsg, _T("XML Error"), MB_OK | MB_ICONERROR);
+        return 1;
+    }
+
+    LoadOptions();
+
+    // Perform application initialization:
+    hWndApp = InitInstance (hInstance, nCmdShow);
+    if (!hWndApp)
+        return FALSE;
+
+    hNotifyMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_NOTIFYICONMENU));
+    hCaptureMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_CAPTUREMENU));
+
+    hCursorArrow = LoadCursor(NULL, IDC_ARROW);
+    hCursorMove	= LoadCursor(NULL, IDC_SIZEALL);
+    hCursorNS = LoadCursor(NULL, IDC_SIZENS);
+    hCursorEW = LoadCursor(NULL, IDC_SIZEWE);
+    hCursorNESW = LoadCursor(NULL, IDC_SIZENESW);
+    hCursorNWSE = LoadCursor(NULL, IDC_SIZENWSE);
+
+    SnapHookSetHooks();
+
+    // Main message loop:
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    DestroyMenu(hNotifyMenu);
+    DestroyMenu(hCaptureMenu);
+
+    DestroyCursor(hCursorMove);
+    DestroyCursor(hCursorNS);
+    DestroyCursor(hCursorEW);
+    DestroyCursor(hCursorNESW);
+    DestroyCursor(hCursorNWSE);
+
+    SnapHookClearHooks();
+
+    GdiplusShutdown(gdiplusToken);
+
+    XMLPlatformUtils::Terminate();
+
+    CoUninitialize();
+
+    return (int) msg.wParam;
+}
+
+
+
+//
+//  FUNCTION: MyRegisterClass()
+//
+//  PURPOSE: Registers the window class.
+//
+//  COMMENTS:
+//
+//    This function and its usage are only necessary if you want this code
+//    to be compatible with Win32 systems prior to the 'RegisterClassEx'
+//    function that was added to Windows 95. It is important to call this function
+//    so that the application will get 'well formed' small icons associated
+//    with it.
+//
+ATOM MyRegisterClass(HINSTANCE hInstance)
+{
+    WNDCLASSEX wcex;
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+
+    wcex.cbSize = sizeof(WNDCLASSEX);
+
+    wcex.style			= CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc	= WndProc;
+    wcex.cbClsExtra		= 0;
+    wcex.cbWndExtra		= 0;
+    wcex.hInstance		= hInstance;
+    wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SNAPBOX));
+    wcex.hCursor		= LoadCursor(NULL, IDC_CROSS);
+    wcex.hbrBackground	= CreateSolidBrush(RGB(0, 0, 0));
+    wcex.lpszClassName	= szWindowClass;
+
+    return RegisterClassEx(&wcex);
+}
+
+// Capture routines
+
+bool capturing = false;
+POINT startPoint, endPoint;
+
+void CalcPoints(RECT &rect, int &sizeMarks)
+{
+    if (startPoint.x <= endPoint.x)
+    {
+        rect.left = startPoint.x;
+        rect.right = endPoint.x;
+        sizeMarks = SIZEMARKLOCATION_LEFT;
+    }
+    else
+    {
+        rect.left = endPoint.x;
+        rect.right = startPoint.x;
+        sizeMarks = SIZEMARKLOCATION_RIGHT;
+    }
+
+    if (startPoint.y <= endPoint.y)
+    {
+        rect.top = startPoint.y;
+        rect.bottom = endPoint.y;
+        sizeMarks |= SIZEMARKLOCATION_TOP;
+    }
+    else
+    {
+        rect.top = endPoint.y;
+        rect.bottom = startPoint.y;
+        sizeMarks |= SIZEMARKLOCATION_BOTTOM;
+    }
+}
+
+void DoCapture() {
+    if (options.hideOnNewSnap)
+        HideAllCaptureBoxes();
+    Sleep(50);
+
+    HWND hDesktop = GetDesktopWindow();
+    HDC hdcSrc = GetDC(hDesktop);
+    HDC hdcDest = CreateCompatibleDC(hdcSrc);
+
+    int cx = GetSystemMetrics(SM_CXVIRTUALSCREEN),
+        cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+    HBITMAP hBitmap = CreateCompatibleBitmap(hdcSrc, cx, cy);
+    HGDIOBJ hOld = SelectObject(hdcDest, hBitmap);
+    BitBlt(hdcDest, 0, 0, cx, cy, hdcSrc, 0, 0, SRCCOPY | CAPTUREBLT);
+    SelectObject(hdcDest, hOld);
+
+    ReleaseDC(hDesktop, hdcSrc);
+    DeleteDC(hdcDest);
+
+    bScreen = new Bitmap(hBitmap, NULL);
+    hScreen = hBitmap;
+
+    HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, szWindowClass, NULL, WS_POPUP,
+      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, hWndApp, NULL, hInst, NULL);
+
+    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, cx, cy, 0);
+    ShowWindow(hWnd, SW_SHOWNORMAL);
+}
+
+void StopCapture(HWND hWnd)
+{
+    capturing = false;
+    ShowWindow(hWnd, SW_HIDE);
+    if (options.hideOnNewSnap)
+        ShowAllCaptureBoxes();
+
+    if (bScreen)
+    {
+        delete bScreen;
+        bScreen = NULL;
+
+        DeleteObject(hScreen);
+        hScreen = 0;
+    }
+
+    DestroyWindow(hWnd);
+}
+
+void MouseDown(HWND hWnd, POINT p)
+{
+    UNREFERENCED_PARAMETER(hWnd);
+
+    capturing = true;
+    startPoint = p;
+}
+
+void MouseMove(HWND hWnd, POINT p)
+{
+    if (!capturing) return;
+
+    endPoint = p;
+    RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
+}
+
+void MouseUp(HWND hWnd, POINT p)
+{
+    if (!capturing) return;
+
+    endPoint = p;
+    RECT rect;
+    int sizeMarks;
+    CalcPoints(rect, sizeMarks);
+
+    if ((abs(rect.right-rect.left) < dragMin.x) && (abs(rect.bottom-rect.top) < dragMin.y))
+    {
+        StopCapture(hWnd);
+        return;
+    }
+
+    Graphics *gSrc = new Graphics(bScreen);
+    Bitmap *bitmap = new Bitmap(rect.right-rect.left, rect.bottom-rect.top, gSrc);
+    delete gSrc;
+    Graphics *gDest = new Graphics(bitmap);
+
+    gDest->DrawImage(bScreen, 0, 0, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, UnitPixel);
+    delete gDest;
+
+    StopCapture(hWnd);
+    CreateCaptureBox(bitmap, rect);
+}
+
+//
+//   FUNCTION: InitInstance(HINSTANCE, int)
+//
+//   PURPOSE: Saves instance handle and creates main window
+//
+//   COMMENTS:
+//
+//        In this function, we save the instance handle in a global variable and
+//        create and display the main program window.
+//
+HWND InitInstance(HINSTANCE hInstance, int nCmdShow)
+{
+    UNREFERENCED_PARAMETER(nCmdShow);
+
+    if (singleInstance.IsAnotherInstanceRunning())
+    {
+#ifdef _DEBUG
+        MessageBox(NULL, _T("Another Instance Is Running"), _T("Error"), MB_OK | MB_ICONERROR);
+#endif
+        return FALSE;
+    }
+
+    hInst = hInstance;
+
+    return CreateBaseWindow();
+}
+
+//
+//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
+//
+//  PURPOSE:  Processes messages for the main window.
+//
+//  WM_COMMAND	- process the application menu
+//  WM_PAINT	- Paint the main window
+//  WM_DESTROY	- post a quit message and return
+//
+//
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    PAINTSTRUCT ps;
+    HDC hdc;
+    POINT p;
+    PMINMAXINFO info;
+
+    switch (message)
+    {
+    case WM_LBUTTONDOWN:
+        p.x = GET_X_LPARAM(lParam);
+        p.y = GET_Y_LPARAM(lParam);
+        MouseDown(hWnd, p);
+        break;
+    case WM_MOUSEMOVE:
+        p.x = GET_X_LPARAM(lParam);
+        p.y = GET_Y_LPARAM(lParam);
+        MouseMove(hWnd, p);
+        break;
+    case WM_LBUTTONUP:
+        p.x = GET_X_LPARAM(lParam);
+        p.y = GET_Y_LPARAM(lParam);
+        MouseUp(hWnd, p);
+        break;
+    case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE)
+            StopCapture(hWnd);
+        break;
+    case WM_PAINT:
+        hdc = BeginPaint(hWnd, &ps);
+
+        if (bScreen)
+        {
+            int cx = GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+            Graphics* g = new Graphics(hdc);
+
+            Bitmap* buffer = new Bitmap(cx, cy, g);
+            Graphics* gBuffer = new Graphics(buffer);
+            gBuffer->DrawImage(bScreen, 0, 0);
+
+            if (capturing)
+            {
+                RECT rect;
+                int sizeMarks;
+                CalcPoints(rect, sizeMarks);
+
+                SolidBrush *b = new SolidBrush(Color(0x7f, 0, 0, 0));
+                gBuffer->FillRectangle(b, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
+
+                RECT newRect;
+                ExpandForSizeMarks(&rect, &newRect, sizeMarks);
+
+                RectF clipRect;
+                clipRect.X = 0;
+                clipRect.Y = 0;
+                clipRect.Width = (float)(rect.right-rect.left);
+                clipRect.Height = (float)(rect.bottom-rect.top);
+
+                GraphicsState gState = gBuffer->Save();
+                gBuffer->TranslateTransform((float)newRect.left, (float)newRect.top);
+
+                SIZEMARKOPTIONS options;
+                memset(&options, 0, sizeof(options));
+                options.lpRect = &newRect;
+                options.lpCropRect = &clipRect;
+                options.dwLocation = sizeMarks;
+                options.fOpacity = 1.0;
+                DrawSizeMarks(gBuffer, &options);
+
+                gBuffer->Restore(gState);
+
+                delete b;
+            }
+
+            delete gBuffer;
+
+            g->DrawImage(buffer, 0, 0);
+            delete buffer;
+            delete g;
+        }
+
+        EndPaint(hWnd, &ps);
+        break;
+    case WM_ERASEBKGND:
+        break;
+    case WM_GETMINMAXINFO:
+        info = (PMINMAXINFO)lParam;
+        info->ptMinTrackSize.x = 0;
+        info->ptMinTrackSize.y = 0;
+        break;
+    case WM_NCCALCSIZE:
+        return 0;
+        break;
+    case WM_NCPAINT:
+        return 0;
+        break;
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+    return 0;
+}

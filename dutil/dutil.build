@@ -1,0 +1,201 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<project name="dutil" default="dutil.inc" xmlns="http://nant.sf.net/release/0.85-rc3/nant.xsd">
+  <description>
+    Copyright (c) Microsoft Corporation.  All rights reserved.
+    
+    The use and distribution terms for this software are covered by the
+    Common Public License 1.0 (http://opensource.org/licenses/cpl.php)
+    which can be found in the file CPL.TXT at the root of this distribution.
+    By using this software in any fashion, you are agreeing to be bound by
+    the terms of this license.
+    
+    You must not remove this notice, or any other, from this software.
+
+    dutil.build - Builds dutil.lib.
+  </description>
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Properties
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+
+  <!-- Include the global build properties -->
+  <include buildfile="..\..\wix.include" unless="${property::exists('wix.properties.defined')}" />
+
+  <!-- dutil-specific properties -->
+
+  <!--
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Targets
+  //////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+
+  <!-- Build -->
+  <target name="dutil.build" description="Peforms a full rebuild (clean then build)" depends="dutil.clean, dutil.inc" />
+  
+  <!-- Clean -->
+  <target name="dutil.clean" description="Cleans the build">
+    <delete dir="${dir.build.dutil.x86}" failonerror="false" if="${directory::exists(dir.build.dutil.x86)}" />
+    <delete dir="${dir.build.dutil.x64}" failonerror="false" if="${directory::exists(dir.build.dutil.x64)}" />
+    <delete dir="${dir.build.dutil.ia64}" failonerror="false" if="${directory::exists(dir.build.dutil.ia64)}" />
+    <delete file="${file.target.dutil.x86}" failonerror="false" if="${file::exists(file.target.dutil.x86)}" />
+    <delete file="${file.target.dutil.x64}" failonerror="false" if="${file::exists(file.target.dutil.x64)}" />
+    <delete file="${file.target.dutil.ia64}" failonerror="false" if="${file::exists(file.target.dutil.ia64)}" />
+
+    <delete dir="${dir.build.dutil.x86.vc8}" failonerror="false" if="${directory::exists(dir.build.dutil.x86.vc8)}" />
+    <delete dir="${dir.build.dutil.x64.vc8}" failonerror="false" if="${directory::exists(dir.build.dutil.x64.vc8)}" />
+    <delete dir="${dir.build.dutil.ia64.vc8}" failonerror="false" if="${directory::exists(dir.build.dutil.ia64.vc8)}" />
+    <delete file="${file.target.dutil.x86.vc8}" failonerror="false" if="${file::exists(file.target.dutil.x86.vc8)}" />
+    <delete file="${file.target.dutil.x64.vc8}" failonerror="false" if="${file::exists(file.target.dutil.x64.vc8)}" />
+    <delete file="${file.target.dutil.ia64.vc8}" failonerror="false" if="${file::exists(file.target.dutil.ia64.vc8)}" />
+
+    <delete failonerror="false">
+      <fileset basedir="${dir.target.wix}">
+        <include name="aclutil.h" />
+        <include name="cabcutil.h" />
+        <include name="cabutil.h" />
+        <include name="certutil.h" />
+        <include name="conutil.h" />
+        <include name="dirutil.h" />
+        <include name="dutil.h" />
+        <include name="fileutil.h" />
+        <include name="gdiputil.h" />
+        <include name="inetutil.h" />
+        <include name="logutil.h" />
+        <include name="memutil.h" />
+        <include name="metautil.h" />
+        <include name="pathutil.h" />
+        <include name="perfutil.h" />
+        <include name="procutil.h" />
+        <include name="resrutil.h" />
+        <include name="reswutil.h" />
+        <include name="rssutil.h" />
+        <include name="sqlutil.h" />
+        <include name="strutil.h" />
+        <include name="thmutil.h" />
+        <include name="timeutil.h" />
+        <include name="uriutil.h" />
+        <include name="userutil.h" />
+        <include name="wiutil.h" />
+        <include name="xmlutil.h" />
+      </fileset>
+    </delete>
+  </target>
+
+  <!-- Inc -->
+  <target name="dutil.inc" description="Performs an incremental build" depends="makeDirs">
+    <copy todir="${dir.target.wix}">
+      <fileset basedir="${dir.src.dutil}">
+        <include name="aclutil.h" />
+        <include name="cabcutil.h" />
+        <include name="cabutil.h" />
+        <include name="certutil.h" />
+        <include name="conutil.h" />
+        <include name="dirutil.h" />
+        <include name="dutil.h" />
+        <include name="fileutil.h" />
+        <include name="gdiputil.h" />
+        <include name="inetutil.h" />
+        <include name="logutil.h" />
+        <include name="memutil.h" />
+        <include name="metautil.h" />
+        <include name="pathutil.h" />
+        <include name="perfutil.h" />
+        <include name="procutil.h" />
+        <include name="resrutil.h" />
+        <include name="reswutil.h" />
+        <include name="rssutil.h" />
+        <include name="sqlutil.h" />
+        <include name="strutil.h" />
+        <include name="thmutil.h" />
+        <include name="timeutil.h" />
+        <include name="uriutil.h" />
+        <include name="userutil.h" />
+        <include name="wiutil.h" />
+        <include name="xmlutil.h" />
+      </fileset>
+    </copy>
+    <fileset id="compileCpp.fileset.sources" basedir="${dir.src.dutil}">
+      <include name="aclutil.cpp" />
+      <include name="cabutil.cpp" />
+      <include name="cabcutil.cpp" />
+      <include name="certutil.cpp" />
+      <include name="conutil.cpp" />
+      <include name="dirutil.cpp" />
+      <include name="dutil.cpp" />
+      <include name="fileutil.cpp" />
+      <include name="gdiputil.cpp" />
+      <include name="inetutil.cpp" />
+      <include name="logutil.cpp" />
+      <include name="memutil.cpp" />
+      <include name="metautil.cpp" />
+      <include name="pathutil.cpp" />
+      <include name="perfutil.cpp" />
+      <include name="procutil.cpp" />
+      <include name="proc2utl.cpp" />
+      <include name="resrutil.cpp" />
+      <include name="reswutil.cpp" />
+      <include name="rssutil.cpp" />
+      <include name="sqlutil.cpp" />
+      <include name="strutil.cpp" />
+      <include name="thmutil.cpp" />
+      <include name="timeutil.cpp" />
+      <include name="uriutil.cpp" />
+      <include name="userutil.cpp" />
+      <include name="wiutil.cpp" />
+      <include name="xmlutil.cpp" />
+    </fileset>
+    <property name="compileCpp.dir.build" value="${dir.build.dutil}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.x86}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="x86" />
+    <!-- Make x86 dutil.lib -->
+    <call target="makeNativeLib" />
+
+    <property name="compileCpp.dir.build" value="${dir.build.dutil}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.x64}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="x64" />
+    <!-- Make x64 dutil.lib -->
+    <call target="makeNativeLib" />
+
+    <property name="compileCpp.dir.build" value="${dir.build.dutil}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <!-- Our winnt.h defines functions as intrinsic for ia-64 which don't exist in the VS2005 compiler.
+         the following "/wd4163" switch can likely be removed if using the VS2008 compiler -->
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.ia64}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="ia64" />
+    <!-- Make ia64 dutil.lib -->
+    <call target="makeNativeLib" />
+
+    <!-- Now build VS 2005 versions of dutil.lib for each architecture -->
+
+    <property name="compileCpp.dir.build" value="${dir.build.dutil.vc8}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.x86.vc8}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="x86" />
+    <property name="makeNativeLib.vctoolsversion" value="8" />
+    <!-- Make VC8 x86 dutil.lib -->
+    <call target="makeNativeLib" />
+
+    <property name="compileCpp.dir.build" value="${dir.build.dutil.vc8}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.x64.vc8}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="x64" />
+    <property name="makeNativeLib.vctoolsversion" value="8" />
+    <!-- Make VC8 x64 dutil.lib -->
+    <call target="makeNativeLib" />
+
+    <property name="compileCpp.dir.build" value="${dir.build.dutil.vc8}" dynamic="true" />
+    <property name="compileCpp.file.precomp.h" value="${dir.src.dutil}\precomp.h" />
+    <!-- Our winnt.h defines functions as intrinsic for ia-64 which don't exist in the VS2005 compiler.
+         the following "/wd4163" switch can likely be removed if using the VS2008 compiler -->
+    <property name="makeNativeLib.file.target" value="${file.target.dutil.ia64.vc8}" dynamic="true" />
+    <property name="makeNativeLib.platform" value="ia64" />
+    <property name="makeNativeLib.vctoolsversion" value="8" />
+    <!-- Make VC8 ia64 dutil.lib -->
+    <call target="makeNativeLib" />
+
+  </target>
+</project>

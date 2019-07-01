@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{405E29ED-BF2F-4D5A-8AB7-60CFBFF32449}</ProjectGuid>
+    <RootNamespace>dutil</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>15.0.26430.15</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="aclutil.cpp" />
+    <ClCompile Include="cabcutil.cpp" />
+    <ClCompile Include="cabutil.cpp" />
+    <ClCompile Include="certutil.cpp" />
+    <ClCompile Include="dirutil.cpp" />
+    <ClCompile Include="dutil.cpp" />
+    <ClCompile Include="fileutil.cpp" />
+    <ClCompile Include="gdiputil.cpp" />
+    <ClCompile Include="inetutil.cpp" />
+    <ClCompile Include="logutil.cpp" />
+    <ClCompile Include="memutil.cpp" />
+    <ClCompile Include="metautil.cpp" />
+    <ClCompile Include="pathutil.cpp" />
+    <ClCompile Include="perfutil.cpp" />
+    <ClCompile Include="proc2utl.cpp" />
+    <ClCompile Include="procutil.cpp" />
+    <ClCompile Include="resrutil.cpp" />
+    <ClCompile Include="reswutil.cpp" />
+    <ClCompile Include="rssutil.cpp" />
+    <ClCompile Include="sqlutil.cpp" />
+    <ClCompile Include="strutil.cpp" />
+    <ClCompile Include="thmutil.cpp" />
+    <ClCompile Include="timeutil.cpp" />
+    <ClCompile Include="uriutil.cpp" />
+    <ClCompile Include="userutil.cpp" />
+    <ClCompile Include="wiutil.cpp" />
+    <ClCompile Include="xmlutil.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aclutil.h" />
+    <ClInclude Include="cabcutil.h" />
+    <ClInclude Include="cabutil.h" />
+    <ClInclude Include="certutil.h" />
+    <ClInclude Include="dirutil.h" />
+    <ClInclude Include="dutil.h" />
+    <ClInclude Include="fileutil.h" />
+    <ClInclude Include="gdiputil.h" />
+    <ClInclude Include="inetutil.h" />
+    <ClInclude Include="logutil.h" />
+    <ClInclude Include="memutil.h" />
+    <ClInclude Include="metautil.h" />
+    <ClInclude Include="pathutil.h" />
+    <ClInclude Include="perfutil.h" />
+    <ClInclude Include="precomp.h" />
+    <ClInclude Include="procutil.h" />
+    <ClInclude Include="resrutil.h" />
+    <ClInclude Include="reswutil.h" />
+    <ClInclude Include="rexutil.h" />
+    <ClInclude Include="rssutil.h" />
+    <ClInclude Include="shelutil.h" />
+    <ClInclude Include="sqlutil.h" />
+    <ClInclude Include="strutil.h" />
+    <ClInclude Include="thmutil.h" />
+    <ClInclude Include="timeutil.h" />
+    <ClInclude Include="uriutil.h" />
+    <ClInclude Include="userutil.h" />
+    <ClInclude Include="wiutil.h" />
+    <ClInclude Include="xmlutil.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

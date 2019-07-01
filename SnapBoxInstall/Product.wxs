@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?include ../version.wxi ?>
+<?if $(var.Platform) = x86 ?>
+<?define ProgramFiles=ProgramFilesFolder ?>
+<?else ?>
+<?define ProgramFiles=ProgramFiles64Folder ?>
+<?endif ?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="SnapBox $(var.Version)" Language="1033" Version="$(var.Version)" Manufacturer="BurnettSoft" UpgradeCode="73806b93-4455-412d-ad51-a401e59e2734">
+		<Package InstallerVersion="500" Compressed="yes" Manufacturer="BurnettSoft" Languages="1033" InstallPrivileges="limited" />
+
+		<Media Id="1" Cabinet="SnapBox.cab" EmbedCab="yes" CompressionLevel="high" />
+
+    <Upgrade Id="73806b93-4455-412d-ad51-a401e59e2734">
+      <UpgradeVersion Minimum="0.0.1" IncludeMinimum="yes" Maximum="$(var.Version)" Property="VERSIONUPGRADE" MigrateFeatures="yes" />
+    </Upgrade>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallExecute"/>
+    </InstallExecuteSequence>
+
+    <!-- Out of order detection -->
+    <Upgrade Id="73806b93-4455-412d-ad51-a401e59e2734">
+      <UpgradeVersion Minimum="$(var.Version)" OnlyDetect="yes" Property="NEWERVERSIONDETECTED" />
+    </Upgrade>
+    <Condition Message="A more recent version of SnapBox is already installed. Setup will now exit.">
+      NOT NEWERVERSIONDETECTED OR Installed
+    </Condition>
+
+    <Condition Message="SnapBox is only supported on Windows 8.1 or higher.">
+      <![CDATA[Installed OR (VersionNT >= 0603)]]>
+    </Condition>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.ProgramFiles)">
+				<Directory Id="APPLICATIONFOLDER" Name="SnapBox" FileSource="..\Win32\$(var.Configuration)">
+					<Component Id="SnapBox.exe" Guid="3ce3d278-b698-4ac2-aa96-8d5ff9ef571c">
+            <File Id="SnapBox.exe" Name="SnapBox.exe" KeyPath="yes" Vital="yes" />
+					</Component>
+          <Component Id="xercesc_3_0.dll" Guid="FB7C431D-F212-40f2-975D-0B2E20A5F42B">
+            <File Id="xercesc_3_0.dll" Name="xerces-c_3_0.dll" KeyPath="yes" Vital="yes" />
+          </Component>
+          <!--<Component Id="msvcp90.dll" Guid="9B0B19E1-ECD9-47a4-9F12-EA3876699D0D">
+            <File Id="msvcp90.dll" Name="msvcp90.dll" KeyPath="yes" />
+          </Component>
+          <Component Id="msvcm90.dll" Guid="880C9A56-305D-4413-8242-A5F441A7747A">
+            <File Id="msvcm90.dll" Name="msvcm90.dll" KeyPath="yes" />
+          </Component>
+          <Component Id="msvcr90.dll" Guid="650288FC-21FD-4c00-9FB4-C09D9E1731C4">
+            <File Id="msvcr90.dll" Name="msvcr90.dll" KeyPath="yes" />
+          </Component>-->
+          <Component Id="license.rtf" Guid="29B56411-8C55-452a-84D4-F181F542AD24">
+            <File Id="license.rtf" Source="../Distribution/license.rtf" KeyPath="yes" />
+          </Component>
+          <Component Id="xerces.txt" Guid="C6FC980E-EA36-4801-A373-D795FEE99EA4">
+            <File Id="xerces.txt" Source="../Distribution/xerces.txt" KeyPath="yes" />
+          </Component>
+        </Directory>
+			</Directory>
+      
+      <!-- Shortcuts -->
+
+      <Directory Id="ProgramMenuFolder">
+        <Component Id="StartMenuShortcut" Guid="DCC50893-8937-4635-8CE4-10F502A1C84F">
+          <Shortcut Id="StartMenuShortcut" Name="SnapBox" Description="SnapBox" Target="[APPLICATIONFOLDER]SnapBox.exe" WorkingDirectory="APPLICATIONFOLDER" />
+          <RegistryValue Root="HKCU" Key="Software\BurnettSoft\SnapBox" Name="startMenu" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+
+      <Directory Id="StartupFolder">
+        <Component Id="StartupShortcut" Guid="CA6AC5CC-50D1-4f3d-B9CA-C2E3F407C42C">
+          <Shortcut Id="StartupShortcut" Name="SnapBox" Description="SnapBox" Target="[APPLICATIONFOLDER]SnapBox.exe" Arguments="-q" WorkingDirectory="APPLICATIONFOLDER" />
+          <RegistryValue Root="HKCU" Key="Software\BurnettSoft\SnapBox" Name="startup" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+
+      <Directory Id="DesktopFolder">
+        <Component Id="DesktopShortcut" Guid="AFE855E7-299F-4db7-93C7-514B87F5E14D">
+          <Shortcut Id="DesktopShortcut" Name="SnapBox" Description="SnapBox" Target="[APPLICATIONFOLDER]SnapBox.exe" WorkingDirectory="APPLICATIONFOLDER" />
+          <RegistryValue Root="HKCU" Key="Software\BurnettSoft\SnapBox" Name="desktop" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </Directory>
+
+    <Feature Id="SnapBox" Title="SnapBox" Level="1" Absent="disallow" AllowAdvertise="no" TypicalDefault="install">
+		  <ComponentRef Id="SnapBox.exe" />
+      <ComponentRef Id="xercesc_3_0.dll" />
+      <!--<ComponentRef Id="msvcp90.dll" />
+      <ComponentRef Id="msvcm90.dll" />
+      <ComponentRef Id="msvcr90.dll" />-->
+      <ComponentRef Id="license.rtf" />
+      <ComponentRef Id="xerces.txt" />
+      <ComponentRef Id="StartMenuShortcut" />
+		</Feature>
+    <Feature Id="AutoStart" Title="Start SnapBox With Windows" Level="1" AllowAdvertise="no" TypicalDefault="install">
+      <ComponentRef Id="StartupShortcut" />
+    </Feature>
+    <Feature Id="DesktopShortcut" Title="Desktop Shortcut" Level="2" AllowAdvertise="no" TypicalDefault="install">
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="..\Distribution\license.rtf" />
+    <Property Id="ApplicationFolderName" Value="SnapBox" />
+    <Property Id="WixAppFolder" Value="WixPerMachineFolder" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch SnapBox" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <UI>
+      <UIRef Id="WixUI_Advanced" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+    </UI>
+
+    <Property Id="WixShellExecTarget" Value="[#SnapBox.exe]" />
+    <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+    
+    <!-- Other Properties -->
+    <Icon Id="SnapBox.ico" SourceFile="../SnapBox/SnapBox.ico" />
+    <Property Id="ARPPRODUCTICON" Value="SnapBox.ico" />
+  </Product>
+</Wix>
