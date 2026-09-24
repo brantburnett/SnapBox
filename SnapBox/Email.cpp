@@ -21,7 +21,14 @@ void EmailFile(LPTSTR szFilename)
     LPTSTR szLocalName = new TCHAR[len];
     _tcscpy_s(szLocalName, len, szFilename);
 
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&EmailThreadProc, szLocalName, 0, NULL);
+    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&EmailThreadProc, szLocalName, 0, NULL);
+    if (hThread)
+        CloseHandle(hThread);
+    else
+    {
+        delete[] szLocalName;
+        DisplayError(0, _T("Error Creating Email Thread"));
+    }
 }
 
 DWORD EmailThreadProc(LPTSTR szFilename)
@@ -58,11 +65,11 @@ DWORD EmailThreadProc(LPTSTR szFilename)
         DisplayError(0, _T("Error Loading MAPI32"));
     FreeLibrary(hModule);
 
-    delete msg->lpFiles;
+    delete[] msg->lpFiles;
     delete msg;
 
     DeleteFile(szFilename);
-    delete szFilename;
+    delete[] szFilename;
 
     return 0;
 }
