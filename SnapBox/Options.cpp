@@ -4,6 +4,8 @@
 #include "CaptureBox.h"
 #include "SnapBoxBase.h"
 
+#include <string>
+
 using namespace xercesc;
 
 #define SETTINGS_FILENAME	_T("settings")
@@ -22,6 +24,56 @@ using namespace xercesc;
 OPTIONS options;
 
 INT_PTR OptionsDialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+namespace
+{
+    class XmlString
+    {
+    public:
+        explicit XmlString(const wchar_t* value)
+        {
+            while (*value)
+            {
+                value_.push_back(static_cast<XMLCh>(*value++));
+            }
+        }
+
+        const XMLCh* c_str() const
+        {
+            return value_.c_str();
+        }
+
+    private:
+        std::basic_string<XMLCh> value_;
+    };
+
+    std::wstring ToWideString(const XMLCh* value)
+    {
+        std::wstring result;
+        if (!value)
+        {
+            return result;
+        }
+
+        while (*value)
+        {
+            result.push_back(static_cast<wchar_t>(*value++));
+        }
+
+        return result;
+    }
+
+    bool XmlEquals(const XMLCh* value, const wchar_t* expected)
+    {
+        if (!value)
+        {
+            return false;
+        }
+
+        XmlString expectedValue(expected);
+        return XMLString::equals(value, expectedValue.c_str());
+    }
+}
 
 bool GetSettingsFileName(LPTSTR szPath, bool createFolder)
 {
@@ -80,19 +132,16 @@ void LoadOptions()
     parser->setErrorHandler(errHandler);
 
     try {
-        parser->parse(szPath);
+        XmlString settingsPath(szPath);
+        parser->parse(settingsPath.c_str());
 
-        const XMLCh *tempName, *namespaceUri;
-
-        xercesc_3_0::DOMDocument* doc = parser->getDocument();
+        xercesc::DOMDocument* doc = parser->getDocument();
         DOMElement* root = doc->getDocumentElement();
 
-        namespaceUri = root->getNamespaceURI();
-        if (wcscmp(namespaceUri, SETTINGS_NAMESPACE))
+        if (!XmlEquals(root->getNamespaceURI(), SETTINGS_NAMESPACE))
             return;
 
-        tempName = root->getLocalName();
-        if (wcscmp(tempName, SETTINGS_ROOT))
+        if (!XmlEquals(root->getLocalName(), SETTINGS_ROOT))
             return;
 
         DOMNode* child = root->getFirstChild();
@@ -101,76 +150,40 @@ void LoadOptions()
             if (child->getNodeType() == DOMNode::ELEMENT_NODE)
             {
                 DOMElement *element = (DOMElement*)child;
-                namespaceUri = element->getNamespaceURI();
-                if (!wcscmp(namespaceUri, SETTINGS_NAMESPACE))
+                if (XmlEquals(element->getNamespaceURI(), SETTINGS_NAMESPACE))
                 {
-                    tempName = element->getLocalName();
-#ifdef _UNICODE
-                    const XMLCh* value = element->getTextContent();
-#else
-                    const XMLCh* temp = element->getTextContent();
-                    char* value = XMLString::transcode(temp);
-#endif
+                    const std::wstring value = ToWideString(element->getTextContent());
 
-                    if (!wcscmp(tempName, SETTINGS_MAXHISTORY))
+                    if (XmlEquals(element->getLocalName(), SETTINGS_MAXHISTORY))
                     {
-                        try
-                        {
-                            options.maxHistory = _ttoi(value);
-                        }
-                        catch (...)
-                        {
-                        }
+                        options.maxHistory = _wtoi(value.c_str());
 
                         if (options.maxHistory > MAX_CAPTURE_HISTORY)
                             options.maxHistory = MAX_CAPTURE_HISTORY;
                         else if (options.maxHistory < 0)
                             options.maxHistory = 0;
                     }
-                    else if (!wcscmp(tempName, SETTINGS_QUICKSAVEPATH))
+                    else if (XmlEquals(element->getLocalName(), SETTINGS_QUICKSAVEPATH))
                     {
-                        value = child->getTextContent();
-                        _tcscpy_s(options.quickSavePath, MAX_PATH, value);
+                        wcscpy_s(options.quickSavePath, MAX_PATH, value.c_str());
                     }
-                    else if (!wcscmp(tempName, SETTINGS_DEFAULTSAVETYPE))
+                    else if (XmlEquals(element->getLocalName(), SETTINGS_DEFAULTSAVETYPE))
                     {
-                        try
-                        {
-                            options.defaultSaveType = _ttoi(value);
-                        }
-                        catch (...)
-                        {
-                        }
+                        options.defaultSaveType = _wtoi(value.c_str());
 
                         if (options.defaultSaveType > 4)
                             options.defaultSaveType = 1;
                         else if (options.maxHistory < 1)
                             options.defaultSaveType = 1;
                     }
-                    else if (!wcscmp(tempName, SETTINGS_HIDEONNEWSNAP))
+                    else if (XmlEquals(element->getLocalName(), SETTINGS_HIDEONNEWSNAP))
                     {
-                        try
-                        {
-                            options.hideOnNewSnap = _ttoi(value) != 0;
-                        }
-                        catch (...)
-                        {
-                        }
+                        options.hideOnNewSnap = _wtoi(value.c_str()) != 0;
                     }
-                    else if (!wcscmp(tempName, SETTINGS_SHOWHOVERINFO))
+                    else if (XmlEquals(element->getLocalName(), SETTINGS_SHOWHOVERINFO))
                     {
-                        try
-                        {
-                            options.showHoverInfo = _ttoi(value) != 0;
-                        }
-                        catch (...)
-                        {
-                        }
+                        options.showHoverInfo = _wtoi(value.c_str()) != 0;
                     }
-
-#ifndef _UNICODE
-                    XMLString::release(value);
-#endif
                 }
             }
 
@@ -191,7 +204,8 @@ void LoadOptions()
     if (theSerializer->getDomConfig()->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true))
          theSerializer->getDomConfig()->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true);
 
-    XMLFormatTarget *myFormTarget = new LocalFileFormatTarget(szFilename);
+    XmlString filename(szFilename);
+    XMLFormatTarget *myFormTarget = new LocalFileFormatTarget(filename.c_str());
     DOMLSOutput* theOutput = ((DOMImplementationLS*)impl)->createLSOutput();
     theOutput->setByteStream(myFormTarget);
 
@@ -217,53 +231,43 @@ bool SaveOptions(const POPTIONS newOptions)
     TCHAR szPath[MAX_PATH];
     if (!GetSettingsFileName(szPath, true)) return false;
 
-    XMLCh tempStr[100];
-    XMLString::transcode("LS", tempStr, 99);
-    DOMImplementation* impl = DOMImplementationRegistry::getDOMImplementation(tempStr);
-
-#ifndef _UNICODE
-    char tempStrCh[100];
-#endif
-
-    xercesc_3_0::DOMDocument* doc = impl->createDocument(SETTINGS_NAMESPACE, SETTINGS_ROOT, NULL);
+    XmlString ls(L"LS");
+    XmlString settingsNamespace(SETTINGS_NAMESPACE);
+    XmlString settingsRoot(SETTINGS_ROOT);
+    XmlString xmlVersion(L"1.0");
+    DOMImplementation* impl = DOMImplementationRegistry::getDOMImplementation(ls.c_str());
+    xercesc::DOMDocument* doc = impl->createDocument(
+        settingsNamespace.c_str(),
+        settingsRoot.c_str(),
+        NULL);
 
     try
     {
-        doc->setXmlVersion(TEXT("1.0"));
+        doc->setXmlVersion(xmlVersion.c_str());
 
         DOMElement* rootNode = doc->getDocumentElement();
 
-#ifdef _UNICODE
-        _stprintf_s(tempStr, 100, _T("%d"), newOptions->maxHistory);
-#else
-        _sprintf_s(tempStrCh, 100, "%d", newOptions-maxHistory);
-        XMLString::transcode(tempStrCh, tempStr, 99);
-#endif
-        DOMElement* element = doc->createElementNS(SETTINGS_NAMESPACE, SETTINGS_MAXHISTORY);
-        element->setTextContent(tempStr);
-        rootNode->appendChild(element);
+        const auto appendElement = [doc, rootNode, &settingsNamespace](
+            const wchar_t* name,
+            const wchar_t* value)
+        {
+            XmlString xmlName(name);
+            XmlString xmlValue(value);
+            DOMElement* element = doc->createElementNS(
+                settingsNamespace.c_str(),
+                xmlName.c_str());
+            element->setTextContent(xmlValue.c_str());
+            rootNode->appendChild(element);
+        };
 
-        element = doc->createElementNS(SETTINGS_NAMESPACE, SETTINGS_QUICKSAVEPATH);
-        element->setTextContent(newOptions->quickSavePath);
-        rootNode->appendChild(element);
+        const std::wstring maxHistory = std::to_wstring(newOptions->maxHistory);
+        appendElement(SETTINGS_MAXHISTORY, maxHistory.c_str());
+        appendElement(SETTINGS_QUICKSAVEPATH, newOptions->quickSavePath);
 
-#ifdef _UNICODE
-        _stprintf_s(tempStr, 100, _T("%d"), newOptions->defaultSaveType);
-#else
-        _sprintf_s(tempStrCh, 100, "%d", newOptions-maxHistory);
-        XMLString::transcode(tempStrCh, tempStr, 99);
-#endif
-        element = doc->createElementNS(SETTINGS_NAMESPACE, SETTINGS_DEFAULTSAVETYPE);
-        element->setTextContent(tempStr);
-        rootNode->appendChild(element);
-
-        element = doc->createElementNS(SETTINGS_NAMESPACE, SETTINGS_HIDEONNEWSNAP);
-        element->setTextContent(newOptions->hideOnNewSnap ? TEXT("1") : TEXT("0"));
-        rootNode->appendChild(element);
-
-        element = doc->createElementNS(SETTINGS_NAMESPACE, SETTINGS_SHOWHOVERINFO);
-        element->setTextContent(newOptions->showHoverInfo ? TEXT("1") : TEXT("0"));
-        rootNode->appendChild(element);
+        const std::wstring defaultSaveType = std::to_wstring(newOptions->defaultSaveType);
+        appendElement(SETTINGS_DEFAULTSAVETYPE, defaultSaveType.c_str());
+        appendElement(SETTINGS_HIDEONNEWSNAP, newOptions->hideOnNewSnap ? L"1" : L"0");
+        appendElement(SETTINGS_SHOWHOVERINFO, newOptions->showHoverInfo ? L"1" : L"0");
 
         if (serializeDOM(impl, doc, szPath))
         {

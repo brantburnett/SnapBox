@@ -198,6 +198,7 @@ PublishScripts/
 *.nuget.props
 *.nuget.targets
 /xerces/
+/vcpkg_installed/
 
 # Microsoft Azure Build Output
 csx/

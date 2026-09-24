@@ -11,6 +11,7 @@
 #include "LimitSingleInstance.h"
 #include <initguid.h>
 #include <ShellScalingAPI.h>
+#include <string>
 #pragma comment(lib, "Shcore.lib")
 
 using namespace Gdiplus;
@@ -80,14 +81,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     }
     catch (const XMLException& toCatch)
     {
-#ifdef _UNICODE
-        LPCTSTR eMsg = toCatch.getMessage();
-#else
-        TCHAR eMsg[512];
-        XMLString::transcode(toCatch.getMessage(), eMsg, 511);
-#endif
+        std::wstring message;
+        for (const XMLCh* character = toCatch.getMessage(); *character; ++character)
+        {
+            message.push_back(static_cast<wchar_t>(*character));
+        }
 
-        MessageBox(NULL, eMsg, _T("XML Error"), MB_OK | MB_ICONERROR);
+        MessageBoxW(NULL, message.c_str(), L"XML Error", MB_OK | MB_ICONERROR);
         return 1;
     }
 

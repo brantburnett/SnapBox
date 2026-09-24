@@ -164,11 +164,7 @@ END
 // RT_MANIFEST
 //
 
-#ifndef _WIN64
 IDC_SNAPBOX             RT_MANIFEST             "SnapBox.exe.manifest"
-#else
-IDC_SNAPBOX				RT_MANIFEST				"SnapBox64.exe.manifest"
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -252,4 +248,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
