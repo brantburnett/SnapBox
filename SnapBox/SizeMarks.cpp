@@ -104,7 +104,7 @@ void InitSizeMarks(HINSTANCE hInstance)
 
     Graphics* g = new Graphics(GetDesktopWindow());
 
-    sizeFont = new Font(_T("Verdana"), SIZEMARK_FONTSIZE);
+    sizeFont = new Font(_T("Segoe UI"), SIZEMARK_FONTSIZE);
 
     sizeStringFormat = new StringFormat();
     if (!g || g->GetLastStatus() != Ok || !sizeFont || sizeFont->GetLastStatus() != Ok || !sizeStringFormat || sizeStringFormat->GetLastStatus() != Ok)
