@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
     <Version Condition="'$(Version)' == ''">0.2.0</Version>
+    <VersionCore>$([System.Text.RegularExpressions.Regex]::Match('$(Version)', '^\d+\.\d+\.\d+').Value)</VersionCore>
+    <InstallerVersion Condition="'$(VersionCore)' != ''">$(VersionCore)</InstallerVersion>
   </PropertyGroup>
 </Project>

@@ -4,7 +4,7 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="SnapBox $(var.Version)"
            Language="1033"
-           Version="$(var.Version)"
+           Version="$(var.InstallerVersion)"
            Manufacturer="BurnettSoft"
            UpgradeCode="73806b93-4455-412d-ad51-a401e59e2734"
            Scope="perMachine">
