@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     outputs:
       platforms: ${{ steps.platforms.outputs.values }}
       version: ${{ steps.version.outputs.version }}
