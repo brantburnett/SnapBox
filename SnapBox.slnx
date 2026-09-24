@@ -2,9 +2,6 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Folder Name="/Solution Items/">
-    <File Path="version.h" />
-  </Folder>
   <Project Path="SnapBox/SnapBox.vcxproj" Id="c6b6706f-6e7e-412a-abea-e4dc4f10d86a" />
   <Project Path="SnapBoxInstall/SnapBoxInstall.wixproj">
     <Build />
