@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
     <OutputType>Bundle</OutputType>
-    <OutputName>SnapBox-$(Platform)-$(Version)-Setup</OutputName>
+    <OutputName>SnapBox-$(Platform)-$(Version)</OutputName>
     <AcceptEula>wix7</AcceptEula>
 
     <WindowsAppRuntimeVersion>2.5.1</WindowsAppRuntimeVersion>
