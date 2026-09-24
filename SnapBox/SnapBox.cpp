@@ -84,6 +84,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
         MessageBoxW(NULL, message.c_str(), L"XML Error", MB_OK | MB_ICONERROR);
         ShutdownSizeMarks();
+        CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
         CoUninitialize();
         return 1;
@@ -96,6 +97,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     if (!hWndApp)
     {
         ShutdownSizeMarks();
+        CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
         XMLPlatformUtils::Terminate();
         CoUninitialize();
@@ -133,6 +135,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     SnapHookClearHooks();
 
     ShutdownSizeMarks();
+    CleanupCaptureBoxResources();
     GdiplusShutdown(gdiplusToken);
 
     XMLPlatformUtils::Terminate();

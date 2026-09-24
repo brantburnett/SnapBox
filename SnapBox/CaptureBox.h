@@ -56,6 +56,7 @@ typedef struct CAPTUREBOXWINDOW
 } *PCAPTUREBOXWINDOW;
 
 ATOM RegisterCaptureBoxClass(HINSTANCE hInstance);
+void CleanupCaptureBoxResources();
 HWND CreateCaptureBox(Gdiplus::Bitmap *bitmap, RECT rect);
 HWND ReopenPrevCaptureBox();
 void CloseAllCaptureBoxes();
