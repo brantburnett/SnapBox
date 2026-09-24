@@ -66,6 +66,18 @@ ATOM RegisterCaptureBoxClass(HINSTANCE hInstance)
     return RegisterClassEx(&wcex);
 }
 
+void CleanupCaptureBoxResources()
+{
+    delete pTransparentBrush;
+    pTransparentBrush = NULL;
+
+    delete pCropBrush;
+    pCropBrush = NULL;
+
+    delete pBorderPen;
+    pBorderPen = NULL;
+}
+
 PCAPTUREBOXWINDOW AddCaptureBoxWindow(HWND hWnd)
 {
     PCAPTUREBOXWINDOW w = new CAPTUREBOXWINDOW();

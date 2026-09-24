@@ -83,6 +83,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         }
 
         MessageBoxW(NULL, message.c_str(), L"XML Error", MB_OK | MB_ICONERROR);
+        ShutdownSizeMarks();
+        CleanupCaptureBoxResources();
+        GdiplusShutdown(gdiplusToken);
+        CoUninitialize();
         return 1;
     }
 
@@ -91,7 +95,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     // Perform application initialization:
     hWndApp = InitInstance (hInstance, nCmdShow);
     if (!hWndApp)
+    {
+        ShutdownSizeMarks();
+        CleanupCaptureBoxResources();
+        GdiplusShutdown(gdiplusToken);
+        XMLPlatformUtils::Terminate();
+        CoUninitialize();
         return FALSE;
+    }
 
     hNotifyMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_NOTIFYICONMENU));
     hCaptureMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_CAPTUREMENU));
@@ -123,6 +134,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
     SnapHookClearHooks();
 
+    ShutdownSizeMarks();
+    CleanupCaptureBoxResources();
     GdiplusShutdown(gdiplusToken);
 
     XMLPlatformUtils::Terminate();

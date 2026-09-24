@@ -12,12 +12,12 @@ using namespace Gdiplus;
 #define SIZEMARK_CLOSEBORDER	2
 #define SIZEMARK_CLOSESPACING	4
 
-Font* sizeFont;
-StringFormat* sizeStringFormat;
-Bitmap* biClose;
+Font* sizeFont = NULL;
+StringFormat* sizeStringFormat = NULL;
+Bitmap* biClose = NULL;
 
-UINT sizeHeight, closeHeight, closeWidth;
-float fSizeHeight;
+UINT sizeHeight = 0, closeHeight = 0, closeWidth = 0;
+float fSizeHeight = 0;
 
 const Color SizeMarkColor1(0xcf, 0xce, 0xce);
 const Color SizeMarkColor2(0x99, 0x99, 0x99);
@@ -41,57 +41,79 @@ Bitmap* LoadBitmapResource(HINSTANCE hInstance, const TCHAR* bitmapName, const T
         return NULL;
 
     HGLOBAL hBuffer = GlobalAlloc(GMEM_MOVEABLE, imageSize);
-    if (hBuffer)
+    if (!hBuffer)
+        return NULL;
+
+    Bitmap* pResult = NULL;
+    void* pBuffer = GlobalLock(hBuffer);
+    if (!pBuffer)
     {
-        Bitmap* pBitmap = NULL;
-        void* pBuffer = GlobalLock(hBuffer);
-        if (pBuffer)
-        {
-            CopyMemory(pBuffer, pResourceData, imageSize);
-
-            IStream* pStream = NULL;
-            if (CreateStreamOnHGlobal(hBuffer, FALSE, &pStream) == S_OK)
-            {
-                pBitmap = Bitmap::FromStream(pStream);
-                pStream->Release();
-                if (pBitmap)
-                {
-                  if (pBitmap->GetLastStatus() == Gdiplus::Ok)
-                    return pBitmap;
-
-                  delete pBitmap;
-                }
-            }
-            GlobalUnlock(hBuffer);
-        }
         GlobalFree(hBuffer);
+        return NULL;
     }
 
-    return NULL;
+    CopyMemory(pBuffer, pResourceData, imageSize);
+
+    IStream* pStream = NULL;
+    if (CreateStreamOnHGlobal(hBuffer, FALSE, &pStream) == S_OK)
+    {
+        Bitmap* pBitmap = Bitmap::FromStream(pStream);
+        if (pBitmap && pBitmap->GetLastStatus() == Gdiplus::Ok)
+        {
+            pResult = pBitmap->Clone(0, 0, pBitmap->GetWidth(), pBitmap->GetHeight(), pBitmap->GetPixelFormat());
+            if (pResult && pResult->GetLastStatus() != Gdiplus::Ok)
+            {
+                delete pResult;
+                pResult = NULL;
+            }
+        }
+        delete pBitmap;
+        pStream->Release();
+    }
+
+    GlobalUnlock(hBuffer);
+    GlobalFree(hBuffer);
+    return pResult;
+}
+
+void ShutdownSizeMarks()
+{
+    delete sizeFont;
+    sizeFont = NULL;
+    delete sizeStringFormat;
+    sizeStringFormat = NULL;
+    delete biClose;
+    biClose = NULL;
+
+    sizeHeight = 0;
+    closeHeight = 0;
+    closeWidth = 0;
+    fSizeHeight = 0;
 }
 
 void InitSizeMarks(HINSTANCE hInstance)
 {
-    if (sizeFont)
-    {
-        delete sizeFont;
-        sizeFont = NULL;
-    }
-    if (sizeStringFormat)
-    {
-        delete sizeStringFormat;
-        sizeStringFormat = NULL;
-    }
+    ShutdownSizeMarks();
 
     biClose = LoadBitmapResource(hInstance, MAKEINTRESOURCE(IDB_CLOSEPNG), _T("PNG"));
-    closeHeight = biClose->GetHeight();
-    closeWidth = biClose->GetWidth();
+    if (biClose)
+    {
+        closeHeight = biClose->GetHeight();
+        closeWidth = biClose->GetWidth();
+    }
 
     Graphics* g = new Graphics(GetDesktopWindow());
 
     sizeFont = new Font(_T("Verdana"), SIZEMARK_FONTSIZE);
 
     sizeStringFormat = new StringFormat();
+    if (!g || g->GetLastStatus() != Ok || !sizeFont || sizeFont->GetLastStatus() != Ok || !sizeStringFormat || sizeStringFormat->GetLastStatus() != Ok)
+    {
+        delete g;
+        ShutdownSizeMarks();
+        return;
+    }
+
     sizeStringFormat->SetTrimming(StringTrimmingNone);
     sizeStringFormat->SetAlignment(StringAlignmentCenter);
     sizeStringFormat->SetLineAlignment(StringAlignmentCenter);
@@ -107,6 +129,9 @@ void InitSizeMarks(HINSTANCE hInstance)
 
 void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
 {
+    if (!g || !options || !options->lpRect || !options->lpCropRect || !sizeFont || !sizeStringFormat)
+        return;
+
     g->SetTextRenderingHint(TextRenderingHintAntiAlias);
     if (options->lpCloseRect)
         memset(options->lpCloseRect, 0, sizeof(RECT));
@@ -127,7 +152,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
 
     if (options->dwLocation & (SIZEMARKLOCATION_TOP | SIZEMARKLOCATION_BOTTOM))
     {
-        bool drawClose = (bool)(options->dwOptions & SIZEMARKOPTION_SHOWCLOSE);
+        bool drawClose = biClose && (bool)(options->dwOptions & SIZEMARKOPTION_SHOWCLOSE);
 
         _itot_s((int)ceilf(options->lpCropRect->Width), sizeStr, 20, 10);
         _tcscat_s(sizeStr, 20, _T("px"));
