@@ -258,14 +258,26 @@ void MouseDown(HWND hWnd, POINT p)
 
     capturing = true;
     startPoint = p;
+    endPoint = p;
 }
 
 void MouseMove(HWND hWnd, POINT p)
 {
     if (!capturing) return;
 
+    RECT oldRect, oldBounds, newRect, newBounds, dirtyRect;
+    int oldSizeMarks, newSizeMarks;
+
+    CalcPoints(oldRect, oldSizeMarks);
+    ExpandForSizeMarks(&oldRect, &oldBounds, oldSizeMarks);
+
     endPoint = p;
-    RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
+
+    CalcPoints(newRect, newSizeMarks);
+    ExpandForSizeMarks(&newRect, &newBounds, newSizeMarks);
+    UnionRect(&dirtyRect, &oldBounds, &newBounds);
+
+    InvalidateRect(hWnd, &dirtyRect, FALSE);
 }
 
 void MouseUp(HWND hWnd, POINT p)
@@ -366,54 +378,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (bScreen)
         {
-            int cx = GetSystemMetrics(SM_CXVIRTUALSCREEN),
-                cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            Rect paintRect(ps.rcPaint.left, ps.rcPaint.top,
+                ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
+            HDC bufferDC = CreateCompatibleDC(hdc);
+            HBITMAP bufferBitmap = CreateCompatibleBitmap(hdc, paintRect.Width, paintRect.Height);
+            HGDIOBJ oldBufferBitmap = SelectObject(bufferDC, bufferBitmap);
 
-            Graphics* g = new Graphics(hdc);
-
-            Bitmap* buffer = new Bitmap(cx, cy, g);
-            Graphics* gBuffer = new Graphics(buffer);
-            gBuffer->DrawImage(bScreen, 0, 0);
-
-            if (capturing)
             {
-                RECT rect;
-                int sizeMarks;
-                CalcPoints(rect, sizeMarks);
+                Graphics g(bufferDC);
+                g.DrawImage(bScreen, Rect(0, 0, paintRect.Width, paintRect.Height),
+                    paintRect.X, paintRect.Y, paintRect.Width, paintRect.Height, UnitPixel);
 
-                SolidBrush *b = new SolidBrush(Color(0x7f, 0, 0, 0));
-                gBuffer->FillRectangle(b, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
+                if (capturing)
+                {
+                    RECT rect;
+                    int sizeMarks;
+                    CalcPoints(rect, sizeMarks);
 
-                RECT newRect;
-                ExpandForSizeMarks(&rect, &newRect, sizeMarks);
+                    GraphicsState paintState = g.Save();
+                    g.TranslateTransform((float)-paintRect.X, (float)-paintRect.Y);
 
-                RectF clipRect;
-                clipRect.X = 0;
-                clipRect.Y = 0;
-                clipRect.Width = (float)(rect.right-rect.left);
-                clipRect.Height = (float)(rect.bottom-rect.top);
+                    SolidBrush b(Color(0x7f, 0, 0, 0));
+                    g.FillRectangle(&b, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
 
-                GraphicsState gState = gBuffer->Save();
-                gBuffer->TranslateTransform((float)newRect.left, (float)newRect.top);
+                    RECT newRect;
+                    ExpandForSizeMarks(&rect, &newRect, sizeMarks);
 
-                SIZEMARKOPTIONS sizeMarkOptions;
-                memset(&sizeMarkOptions, 0, sizeof(sizeMarkOptions));
-                sizeMarkOptions.lpRect = &newRect;
-                sizeMarkOptions.lpCropRect = &clipRect;
-                sizeMarkOptions.dwLocation = sizeMarks;
-                sizeMarkOptions.fOpacity = 1.0;
-                DrawSizeMarks(gBuffer, &sizeMarkOptions);
+                    RectF clipRect;
+                    clipRect.X = 0;
+                    clipRect.Y = 0;
+                    clipRect.Width = (float)(rect.right-rect.left);
+                    clipRect.Height = (float)(rect.bottom-rect.top);
 
-                gBuffer->Restore(gState);
+                    GraphicsState gState = g.Save();
+                    g.TranslateTransform((float)newRect.left, (float)newRect.top);
 
-                delete b;
+                    SIZEMARKOPTIONS sizeMarkOptions;
+                    memset(&sizeMarkOptions, 0, sizeof(sizeMarkOptions));
+                    sizeMarkOptions.lpRect = &newRect;
+                    sizeMarkOptions.lpCropRect = &clipRect;
+                    sizeMarkOptions.dwLocation = sizeMarks;
+                    sizeMarkOptions.fOpacity = 1.0;
+                    DrawSizeMarks(&g, &sizeMarkOptions);
+
+                    g.Restore(gState);
+                    g.Restore(paintState);
+                }
             }
 
-            delete gBuffer;
-
-            g->DrawImage(buffer, 0, 0);
-            delete buffer;
-            delete g;
+            BitBlt(hdc, paintRect.X, paintRect.Y, paintRect.Width, paintRect.Height,
+                bufferDC, 0, 0, SRCCOPY);
+            SelectObject(bufferDC, oldBufferBitmap);
+            DeleteObject(bufferBitmap);
+            DeleteDC(bufferDC);
         }
 
         EndPaint(hWnd, &ps);
