@@ -44,6 +44,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>18.0.0.0</_ProjectFileVersion>
+    <ResourceVersionRevision Condition="$([System.Version]::Parse('$(Version)').Revision) == -1">0</ResourceVersionRevision>
+    <ResourceVersionRevision Condition="$([System.Version]::Parse('$(Version)').Revision) != -1">$([System.Version]::Parse('$(Version)').Revision)</ResourceVersionRevision>
+    <ResourceVersion>$([System.Version]::Parse('$(Version)').Major),$([System.Version]::Parse('$(Version)').Minor),$([System.Version]::Parse('$(Version)').Build),$(ResourceVersionRevision)</ResourceVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -72,7 +75,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;gdiplus.lib;xerces-c_3D.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -100,7 +103,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;gdiplus.lib;xerces-c_3.lib;%(AdditionalDependencies)</AdditionalDependencies>

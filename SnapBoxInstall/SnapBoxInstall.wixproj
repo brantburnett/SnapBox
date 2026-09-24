@@ -1,7 +1,6 @@
 <Project Sdk="WixToolset.Sdk/7.0.0">
   <PropertyGroup>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
-    <Version Condition="'$(Version)' == ''">0.2.0</Version>
     <VcpkgTriplet>$(Platform)-windows-static</VcpkgTriplet>
     <XercesLicensePath>$(MSBuildProjectDirectory)\..\vcpkg_installed\$(VcpkgTriplet)\share\xerces-c\copyright</XercesLicensePath>
     <OutputType>Package</OutputType>
