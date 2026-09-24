@@ -7,7 +7,7 @@ on:
       - V*
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   prepare:
@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - id: version
-        uses: CenterEdge/actions/dotnet/nuget-version@main
+        uses: CenterEdge/actions/dotnet/nuget-version@4f48ad964c672c289002dbb4c1e4a641ba19c771 # main
         with:
           tag-prefix: '[vV]'
 
@@ -50,11 +50,11 @@ jobs:
           fetch-depth: 0
 
       - id: version
-        uses: CenterEdge/actions/dotnet/nuget-version@main
+        uses: CenterEdge/actions/dotnet/nuget-version@4f48ad964c672c289002dbb4c1e4a641ba19c771 # main
         with:
           tag-prefix: '[vV]'
 
-      - uses: lukka/run-vcpkg@v11
+      - uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         with:
           runVcpkgInstall: false
           vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
@@ -81,6 +81,8 @@ jobs:
       - prepare
       - build
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - name: Download installers
         uses: actions/download-artifact@v8
@@ -90,7 +92,7 @@ jobs:
           merge-multiple: true
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ github.ref_name }}
           name: SnapBox ${{ needs.prepare.outputs.version }}
