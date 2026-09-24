@@ -57,6 +57,7 @@ jobs:
       - uses: lukka/run-vcpkg@v11
         with:
           runVcpkgInstall: false
+          vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
 
       - uses: microsoft/setup-msbuild@v3
 
