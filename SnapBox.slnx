@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="version.h" />
+    <File Path="version.wxi" />
+  </Folder>
+  <Project Path="dutil/dutil.vcxproj" />
+  <Project Path="setupexe/setupexe.vcxproj" />
+  <Project Path="SnapBox/SnapBox.vcxproj" Id="c6b6706f-6e7e-412a-abea-e4dc4f10d86a" />
+  <Project Path="SnapBoxInstall/SnapBoxInstall.wixproj">
+    <BuildDependency Project="setupexe/setupexe.vcxproj" />
+    <BuildDependency Project="SnapBox/SnapBox.vcxproj" />
+    <Build />
+  </Project>
+</Solution>
