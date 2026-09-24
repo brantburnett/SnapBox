@@ -12,7 +12,16 @@
                   DowngradeErrorMessage="A more recent version of SnapBox is already installed. Setup will now exit." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <Launch Condition="Installed OR (VersionNT64 >= v10.0 AND WindowsBuildNumber >= 15063)"
+    <Property Id="WINDOWSBUILD">
+      <RegistrySearch Id="WindowsBuildSearch"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentBuildNumber"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILD >= 15063)"
             Message="SnapBox requires 64-bit Windows 10 version 1703 or higher." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
