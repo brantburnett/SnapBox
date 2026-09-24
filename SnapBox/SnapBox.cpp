@@ -10,9 +10,7 @@
 #include "SizeMarks.h"
 #include "LimitSingleInstance.h"
 #include <initguid.h>
-#include <ShellScalingAPI.h>
 #include <string>
-#pragma comment(lib, "Shcore.lib")
 
 using namespace Gdiplus;
 using namespace xercesc;
@@ -48,9 +46,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
-
-    // Ensure that the app isn't auto scaled based upon DPI
-    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
     INITCOMMONCONTROLSEX initCtrls;
     initCtrls.dwSize = sizeof(initCtrls);
@@ -215,12 +210,14 @@ void DoCapture() {
     HDC hdcSrc = GetDC(hDesktop);
     HDC hdcDest = CreateCompatibleDC(hdcSrc);
 
-    int cx = GetSystemMetrics(SM_CXVIRTUALSCREEN),
+    int x = GetSystemMetrics(SM_XVIRTUALSCREEN),
+        y = GetSystemMetrics(SM_YVIRTUALSCREEN),
+        cx = GetSystemMetrics(SM_CXVIRTUALSCREEN),
         cy = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
     HBITMAP hBitmap = CreateCompatibleBitmap(hdcSrc, cx, cy);
     HGDIOBJ hOld = SelectObject(hdcDest, hBitmap);
-    BitBlt(hdcDest, 0, 0, cx, cy, hdcSrc, 0, 0, SRCCOPY | CAPTUREBLT);
+    BitBlt(hdcDest, 0, 0, cx, cy, hdcSrc, x, y, SRCCOPY | CAPTUREBLT);
     SelectObject(hdcDest, hOld);
 
     ReleaseDC(hDesktop, hdcSrc);
@@ -230,9 +227,9 @@ void DoCapture() {
     hScreen = hBitmap;
 
     HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, szWindowClass, NULL, WS_POPUP,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, hWndApp, NULL, hInst, NULL);
+      x, y, cx, cy, hWndApp, NULL, hInst, NULL);
 
-    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, cx, cy, 0);
+    SetWindowPos(hWnd, HWND_TOPMOST, x, y, cx, cy, 0);
     ShowWindow(hWnd, SW_SHOWNORMAL);
 }
 
@@ -294,6 +291,7 @@ void MouseUp(HWND hWnd, POINT p)
     gDest->DrawImage(bScreen, 0, 0, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, UnitPixel);
     delete gDest;
 
+    MapWindowPoints(hWnd, NULL, (LPPOINT)&rect, 2);
     StopCapture(hWnd);
     CreateCaptureBox(bitmap, rect);
 }

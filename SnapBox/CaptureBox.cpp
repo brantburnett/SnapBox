@@ -1175,6 +1175,20 @@ LRESULT CALLBACK CaptureBoxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
             DrawCaptureBox(hWnd, info, &rect);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            RECT* suggestedRect = (RECT*)lParam;
+            SetWindowPos(hWnd, NULL, suggestedRect->left, suggestedRect->top,
+                suggestedRect->right - suggestedRect->left,
+                suggestedRect->bottom - suggestedRect->top,
+                SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+
+            info = (PCAPTUREBOXINFO)GetWindowLongPtr(hWnd, GWLP_INFO);
+            GetWindowRect(hWnd, &rect);
+            AdjustRect(info, rect);
+            DrawCaptureBox(hWnd, info, &rect);
+        }
+        return 0;
     case WM_DESTROY:
         {
             PCAPTUREBOXCLOSEINFO info = new CAPTUREBOXCLOSEINFO();

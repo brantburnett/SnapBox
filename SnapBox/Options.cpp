@@ -433,28 +433,32 @@ INT_PTR OptionsDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
 
-    int cx, cy;
-
     switch (message)
     {
     case WM_INITDIALOG:
-        cx = GetSystemMetrics(SM_CXSCREEN);
-        cy = GetSystemMetrics(SM_CYSCREEN);
+        {
+            RECT rect;
+            GetWindowRect(hDlg, &rect);
 
-        RECT rect;
-        GetWindowRect(hDlg, &rect);
+            POINT cursor;
+            GetCursorPos(&cursor);
 
-        cx = (cx - (rect.right - rect.left)) / 2;
-        cy = (cy - (rect.bottom - rect.top)) / 2;
-        SetWindowPos(hDlg, NULL, cx, cy, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER);
+            MONITORINFO monitorInfo;
+            monitorInfo.cbSize = sizeof(monitorInfo);
+            GetMonitorInfo(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST), &monitorInfo);
 
-        InitOptionsDialog(hDlg);
+            int x = monitorInfo.rcWork.left + ((monitorInfo.rcWork.right - monitorInfo.rcWork.left) - (rect.right - rect.left)) / 2;
+            int y = monitorInfo.rcWork.top + ((monitorInfo.rcWork.bottom - monitorInfo.rcWork.top) - (rect.bottom - rect.top)) / 2;
+            SetWindowPos(hDlg, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER);
 
-        SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIconLarge);
+            InitOptionsDialog(hDlg);
 
-        hForeWindow = hDlg;
+            SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIconLarge);
 
-        return (INT_PTR)TRUE;
+            hForeWindow = hDlg;
+
+            return (INT_PTR)TRUE;
+        }
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
