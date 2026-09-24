@@ -627,9 +627,9 @@ void CALLBACK AnimateTimer(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
     if (info->animateType & ANIMATETYPE_FRAME)
     {
         if (info->targetFrameOpacity > info->frameOpacity)
-            info->frameOpacity = min(info->startFrameOpacity + (float)0.1*diff, info->targetFrameOpacity);
+            info->frameOpacity = min(info->startFrameOpacity + 0.1f * static_cast<float>(diff), info->targetFrameOpacity);
         else
-            info->frameOpacity = max(info->startFrameOpacity - (float)0.1*diff, info->targetFrameOpacity);
+            info->frameOpacity = max(info->startFrameOpacity - 0.1f * static_cast<float>(diff), info->targetFrameOpacity);
 
         if (info->frameOpacity == info->targetFrameOpacity)
             info->animateType &= ~ANIMATETYPE_FRAME;
@@ -639,12 +639,12 @@ void CALLBACK AnimateTimer(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
     {
         if (info->curScale < info->scale)
         {
-            float temp = info->curScale * pow((float)1.05, (int)diff);
+            float temp = info->curScale * powf(1.05f, static_cast<float>(diff));
             info->curScale = min(temp, info->scale);
         }
         else
         {
-            float temp = info->curScale * pow((float)0.95, (int)diff);
+            float temp = info->curScale * powf(0.95f, static_cast<float>(diff));
             info->curScale = max(temp, info->scale);
         }
 
@@ -1052,11 +1052,11 @@ void CaptureMouseWheel(HWND hWnd, short wheelDelta)
     if (info->moving) return;
 
     int scaleIndex = info->scaleIndex + (wheelDelta/120);
-    float scale = 1.0;
+    float scale = 1.0f;
     if (scaleIndex > 0)
-        scale = pow((float)1.05, scaleIndex);
+        scale = powf(1.05f, static_cast<float>(scaleIndex));
     else if (scaleIndex < 0)
-        scale = pow((float)0.95, -scaleIndex);
+        scale = powf(0.95f, static_cast<float>(-scaleIndex));
 
     int width = (int)(floorf(info->cropRect.Width * scale) + 2),
         height = (int)(floorf(info->cropRect.Height * scale) + 2);
@@ -1177,23 +1177,23 @@ LRESULT CALLBACK CaptureBoxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         break;
     case WM_DESTROY:
         {
-            PCAPTUREBOXCLOSEINFO info = new CAPTUREBOXCLOSEINFO();
-            info->info = (PCAPTUREBOXINFO)GetWindowLongPtr(hWnd, GWLP_INFO);
-            GetWindowRect(hWnd, &info->rLocation);
-            SaveCaptureBox(info);
+            PCAPTUREBOXCLOSEINFO closeInfo = new CAPTUREBOXCLOSEINFO();
+            closeInfo->info = (PCAPTUREBOXINFO)GetWindowLongPtr(hWnd, GWLP_INFO);
+            GetWindowRect(hWnd, &closeInfo->rLocation);
+            SaveCaptureBox(closeInfo);
 
             PCAPTUREBOXWINDOW w = openCaptureBoxes;
-            PCAPTUREBOXWINDOW *p = &openCaptureBoxes;
+            PCAPTUREBOXWINDOW *captureBoxLink = &openCaptureBoxes;
             while (w)
             {
                 if (w->hWnd == hWnd)
                 {
-                    *p = w->next;
+                    *captureBoxLink = w->next;
                     delete w;
                     break;
                 }
 
-                p = &w->next;
+                captureBoxLink = &w->next;
                 w = w->next;
             }
         }
