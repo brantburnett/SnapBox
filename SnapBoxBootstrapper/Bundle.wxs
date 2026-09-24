@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="SnapBox $(var.Version)"
+          Manufacturer="BurnettSoft"
+          Version="$(var.InstallerVersion)"
+          UpgradeCode="A18D38FE-6CA1-4AB9-B08E-3C249D4B2DD7"
+          IconSourceFile="..\SnapBox\SnapBox.ico"
+          Condition="VersionNT64">
+    <WixVariable Id="WixStdbaLicenseUrl" Value="" />
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication Theme="hyperlinkLicense"
+                                              LicenseFile="..\Distribution\license.rtf" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <ExePackage Id="WindowsAppRuntime"
+                  SourceFile="$(var.WindowsAppRuntimeInstallerPath)"
+                  InstallArguments="--quiet"
+                  PerMachine="yes"
+                  Permanent="yes"
+                  Vital="yes"
+                  DisplayName="Windows App Runtime $(var.WindowsAppRuntimeVersion)" />
+      <MsiPackage Id="SnapBox"
+                  SourceFile="$(var.SnapBoxInstall.TargetPath)" />
+    </Chain>
+  </Bundle>
+</Wix>

@@ -1,0 +1,26 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+  <PropertyGroup>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <OutputType>Bundle</OutputType>
+    <OutputName>SnapBox-$(Platform)-$(Version)-Setup</OutputName>
+    <AcceptEula>wix7</AcceptEula>
+
+    <WindowsAppRuntimeVersion>2.5.1</WindowsAppRuntimeVersion>
+    <WindowsAppRuntimeInstallerUrl>https://aka.ms/windowsappsdk/2.5/2.5.1/windowsappruntimeinstall-x64.exe</WindowsAppRuntimeInstallerUrl>
+    <WindowsAppRuntimeInstallerSha256>931A421E8DC3E6E67724806CB67FECDBB88DFE323F0170842EB4A4B4B149F1E2</WindowsAppRuntimeInstallerSha256>
+    <WindowsAppRuntimeInstallerPath>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)prerequisites\WindowsAppRuntimeInstall-x64.exe</WindowsAppRuntimeInstallerPath>
+
+    <DefineConstants>$(DefineConstants);Version=$(Version);InstallerVersion=$(InstallerVersion);WindowsAppRuntimeVersion=$(WindowsAppRuntimeVersion);WindowsAppRuntimeInstallerPath=$(WindowsAppRuntimeInstallerPath)</DefineConstants>
+    <!-- The Microsoft installer performs package and version detection itself. -->
+    <SuppressSpecificWarnings>$(SuppressSpecificWarnings);1161</SuppressSpecificWarnings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Bal.wixext" Version="7.0.0" />
+    <ProjectReference Include="..\SnapBoxInstall\SnapBoxInstall.wixproj" />
+  </ItemGroup>
+
+  <Target Name="DownloadWindowsAppRuntime" BeforeTargets="ResolveReferences">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\build\DownloadWindowsAppRuntime.ps1&quot; -Uri &quot;$(WindowsAppRuntimeInstallerUrl)&quot; -Destination &quot;$(WindowsAppRuntimeInstallerPath)&quot; -Sha256 &quot;$(WindowsAppRuntimeInstallerSha256)&quot;" />
+  </Target>
+</Project>

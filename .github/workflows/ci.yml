@@ -67,5 +67,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: snapbox-installer-${{ matrix.platform }}
-          path: SnapBoxInstall\bin\**\*.msi
+          path: SnapBoxBootstrapper\bin\**\*.exe
           if-no-files-found: error
