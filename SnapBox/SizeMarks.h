@@ -25,6 +25,7 @@ typedef struct {
 typedef const PSIZEMARKOPTIONS PCSIZEMARKOPTIONS;
 
 void InitSizeMarks(HINSTANCE hInstance);
+void ShutdownSizeMarks();
 void DrawSizeMarks(Gdiplus::Graphics* g, const PSIZEMARKOPTIONS options);
 void ExpandForSizeMarks(const RECT* rect, RECT* newRect, int location);
 void AdjustForSizeMarks(RECT &rect, int location);
