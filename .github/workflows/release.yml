@@ -16,7 +16,7 @@ jobs:
       platforms: ${{ steps.platforms.outputs.values }}
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
       matrix:
         platform: ${{ fromJSON(needs.prepare.outputs.platforms) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -59,7 +59,7 @@ jobs:
           runVcpkgInstall: false
           vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
 
-      - uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
+      - uses: microsoft/setup-msbuild@v3
 
       - name: Restore vcpkg dependencies
         shell: pwsh
@@ -70,7 +70,7 @@ jobs:
         run: msbuild SnapBox.slnx /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:Version=${{ steps.version.outputs.version }}"
 
       - name: Archive installer
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@v7
         with:
           name: snapbox-installer-${{ matrix.platform }}
           path: SnapBoxInstall\bin\**\*.msi
@@ -85,7 +85,7 @@ jobs:
       contents: write
     steps:
       - name: Download installers
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@v8
         with:
           pattern: snapbox-installer-*
           path: release
