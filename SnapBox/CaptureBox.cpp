@@ -607,7 +607,7 @@ void DrawCaptureBox(HWND hWnd, PCAPTUREBOXINFO info, const RECT* rect)
     DeleteObject(hBitmap);
     DeleteDC(hdc);
 
-    DeleteDC(hdcScreen);
+    ReleaseDC(NULL, hdcScreen);
 }
 
 void CALLBACK AnimateTimer(HWND hWnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
