@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: windows-latest
+    outputs:
+      platforms: ${{ steps.platforms.outputs.values }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: platforms
+        shell: pwsh
+        run: |
+          [xml]$solution = Get-Content -Raw SnapBox.slnx
+          $platforms = @($solution.Solution.Configurations.Platform | ForEach-Object Name | Sort-Object -Unique)
+
+          if ($platforms.Count -eq 0) {
+            throw "SnapBox.slnx does not declare any build platforms."
+          }
+
+          "values=$(ConvertTo-Json -InputObject $platforms -Compress)" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.prepare.outputs.platforms) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: version
+        uses: CenterEdge/actions/dotnet/nuget-version@main
+        with:
+          tag-prefix: '[vV]'
+
+      - uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: false
+          vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
+
+      - uses: microsoft/setup-msbuild@v3
+
+      - name: Restore vcpkg dependencies
+        shell: pwsh
+        run: vcpkg install --triplet "${{ matrix.platform }}-windows-static"
+
+      - name: Build installer
+        shell: pwsh
+        run: msbuild SnapBox.slnx /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:Version=${{ steps.version.outputs.version }}"
+
+      - name: Archive installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapbox-installer-${{ matrix.platform }}
+          path: SnapBoxInstall\bin\**\*.msi
+          if-no-files-found: error

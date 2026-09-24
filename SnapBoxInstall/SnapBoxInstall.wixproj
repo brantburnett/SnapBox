@@ -4,9 +4,9 @@
     <VcpkgTriplet>$(Platform)-windows-static</VcpkgTriplet>
     <XercesLicensePath>$(MSBuildProjectDirectory)\..\vcpkg_installed\$(VcpkgTriplet)\share\xerces-c\copyright</XercesLicensePath>
     <OutputType>Package</OutputType>
-    <OutputName>SnapBox-$(Platform)</OutputName>
+    <OutputName>SnapBox-$(Platform)-$(Version)</OutputName>
     <AcceptEula>wix7</AcceptEula>
-    <DefineConstants>$(DefineConstants);Version=$(Version);XercesLicensePath=$(XercesLicensePath)</DefineConstants>
+    <DefineConstants>$(DefineConstants);Version=$(Version);InstallerVersion=$(InstallerVersion);XercesLicensePath=$(XercesLicensePath)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +16,8 @@
   </ItemGroup>
 
   <Target Name="TrackInstallerVersion" BeforeTargets="CoreCompile">
+    <Error Condition="'$(InstallerVersion)' == ''"
+           Text="Version '$(Version)' must begin with a numeric major.minor.patch version." />
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(IntermediateOutputPath)installer-version.txt"
                       Lines="$(Version)"
