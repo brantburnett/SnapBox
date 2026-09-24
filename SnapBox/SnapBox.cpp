@@ -396,13 +396,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GraphicsState gState = gBuffer->Save();
                 gBuffer->TranslateTransform((float)newRect.left, (float)newRect.top);
 
-                SIZEMARKOPTIONS options;
-                memset(&options, 0, sizeof(options));
-                options.lpRect = &newRect;
-                options.lpCropRect = &clipRect;
-                options.dwLocation = sizeMarks;
-                options.fOpacity = 1.0;
-                DrawSizeMarks(gBuffer, &options);
+                SIZEMARKOPTIONS sizeMarkOptions;
+                memset(&sizeMarkOptions, 0, sizeof(sizeMarkOptions));
+                sizeMarkOptions.lpRect = &newRect;
+                sizeMarkOptions.lpCropRect = &clipRect;
+                sizeMarkOptions.dwLocation = sizeMarks;
+                sizeMarkOptions.fOpacity = 1.0;
+                DrawSizeMarks(gBuffer, &sizeMarkOptions);
 
                 gBuffer->Restore(gState);
 

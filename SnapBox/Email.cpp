@@ -31,7 +31,7 @@ DWORD EmailThreadProc(LPTSTR szFilename)
     msg->nFileCount = 1;
     msg->lpFiles = new MapiFileDesc[1];
     memset(msg->lpFiles, 0, sizeof(MapiFileDesc));
-    msg->lpFiles[0].nPosition = -1;
+    msg->lpFiles[0].nPosition = static_cast<ULONG>(-1);
 
 #ifdef _UNICODE
     CHAR szCharPath[MAX_PATH];

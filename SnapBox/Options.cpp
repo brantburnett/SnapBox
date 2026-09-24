@@ -107,15 +107,15 @@ bool GetSettingsFileName(LPTSTR szPath, bool createFolder)
     return true;
 }
 
-void SetDefaultOptions(POPTIONS options)
+void SetDefaultOptions(POPTIONS defaults)
 {
-    memset(options, 0, sizeof(OPTIONS));
+    memset(defaults, 0, sizeof(OPTIONS));
 
-    options->maxHistory = 5;
-    options->quickSavePath[0] = _T('\0');
-    options->defaultSaveType = SAVETYPE_PNG;
-    options->hideOnNewSnap = true;
-    options->showHoverInfo = true;
+    defaults->maxHistory = 5;
+    defaults->quickSavePath[0] = _T('\0');
+    defaults->defaultSaveType = SAVETYPE_PNG;
+    defaults->hideOnNewSnap = true;
+    defaults->showHoverInfo = true;
 }
 
 void LoadOptions()
