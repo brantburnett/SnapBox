@@ -89,6 +89,22 @@ App SDK NuGet package is restored by MSBuild's `/restore` switch; run the
 executable on a machine without its matching runtime to validate the
 Windows-provided acquisition UI.
 
+## MSIX packaging
+
+The MSI remains the installer distribution format. CI also stages each Release
+application output as an MSIX package and combines the x64 and ARM64 packages
+into a signed MSIX bundle. Installer output is consolidated in `artifacts\`
+(`publish`, `msix`, and temporary release staging) and ignored by Git. Do not
+wrap an MSI inside an MSIX.
+
+The MSIX publisher must exactly match the subject of the Azure Artifact Signing
+certificate. Configure `MSIX_PACKAGE_IDENTITY_NAME`,
+`MSIX_PACKAGE_PUBLISHER`, and `MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME` as GitHub
+repository or environment variables. See `Packaging\README.md` for the local
+commands and the temporary identity migration procedure for eventual Store
+submission. Sideloaded packages also require the corresponding Microsoft
+Windows App Runtime framework package; the Store resolves that dependency.
+
 There is no automated test project or test runner in this repository. Validate
 native changes by building the affected configuration, and manually exercise
 the Windows UI when changes affect capture behavior, options, hotkeys, email,

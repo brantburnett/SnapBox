@@ -108,6 +108,35 @@ jobs:
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
 
+      - name: Validate MSIX identity configuration
+        shell: pwsh
+        env:
+          MSIX_PACKAGE_IDENTITY_NAME: ${{ vars.MSIX_PACKAGE_IDENTITY_NAME }}
+          MSIX_PACKAGE_PUBLISHER: ${{ vars.MSIX_PACKAGE_PUBLISHER }}
+          MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          foreach ($name in 'MSIX_PACKAGE_IDENTITY_NAME', 'MSIX_PACKAGE_PUBLISHER', 'MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME') {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Required GitHub configuration variable '$name' is not set."
+            }
+          }
+
+      - name: Package MSIX
+        shell: pwsh
+        env:
+          MSIX_PACKAGE_IDENTITY_NAME: ${{ vars.MSIX_PACKAGE_IDENTITY_NAME }}
+          MSIX_PACKAGE_PUBLISHER: ${{ vars.MSIX_PACKAGE_PUBLISHER }}
+          MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME }}
+        run: >
+          .\tools\New-SnapBoxMsix.ps1
+          -Platform ${{ matrix.platform }}
+          -ApplicationDirectory .\${{ matrix.platform }}\Release
+          -OutputDirectory .\artifacts\msix
+          -Version "${{ steps.version.outputs.version }}"
+          -PackageIdentityName "$env:MSIX_PACKAGE_IDENTITY_NAME"
+          -PackagePublisher "$env:MSIX_PACKAGE_PUBLISHER"
+          -PackagePublisherDisplayName "$env:MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME"
+
       - name: Build installer
         shell: pwsh
         run: msbuild SnapBoxInstall\SnapBoxInstall.wixproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ steps.version.outputs.version }}"
@@ -140,12 +169,92 @@ jobs:
         with:
           name: snapbox-installer-${{ matrix.platform }}
           path: artifacts\publish\release\*.msi
+
+      - name: Archive MSIX package
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapbox-msix-${{ matrix.platform }}
+          path: artifacts\msix\*.msix
+          if-no-files-found: error
+
+  bundle-msix:
+    needs:
+      - prepare
+      - build
+    runs-on: windows-latest
+    environment: artifact-signing
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download MSIX packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: snapbox-msix-*
+          path: artifacts\msix-packages
+          merge-multiple: true
+
+      - name: Bundle MSIX packages
+        shell: pwsh
+        run: >
+          .\tools\New-SnapBoxMsixBundle.ps1
+          -PackageDirectory .\artifacts\msix-packages
+          -OutputPath ".\artifacts\msix\SnapBox-${{ needs.prepare.outputs.version }}.msixbundle"
+
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign MSIX bundle
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\artifacts\msix
+          files-folder-filter: '*.msixbundle'
+          files-folder-recurse: false
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Verify MSIX bundle signature
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path .\artifacts\msix\*.msixbundle | ForEach-Object {
+            $signature = Get-AuthenticodeSignature -FilePath $_.FullName
+            if ($signature.Status -ne 'Valid') {
+              throw "MSIX bundle '$($_.Name)' has signature status '$($signature.Status)': $($signature.StatusMessage)"
+            }
+          }
+
+      - name: Archive MSIX bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapbox-msix-bundle
+          path: artifacts\msix\*.msixbundle
           if-no-files-found: error
 
   publish:
     needs:
       - prepare
       - build
+      - bundle-msix
     runs-on: windows-latest
     permissions:
       contents: write
@@ -153,8 +262,8 @@ jobs:
       - name: Download installers
         uses: actions/download-artifact@v8
         with:
-          pattern: snapbox-installer-*
-          path: release
+          pattern: snapbox-*
+          path: artifacts\release
           merge-multiple: true
 
       - name: Create GitHub release
@@ -163,4 +272,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: SnapBox ${{ needs.prepare.outputs.version }}
           generate_release_notes: true
-          files: release\*.msi
+          files: |
+            artifacts\release\*.msi
+            artifacts\release\*.msixbundle
