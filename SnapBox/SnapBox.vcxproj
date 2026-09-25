@@ -147,8 +147,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="close.bmp" />
-    <Image Include="Close.png" />
     <Image Include="SnapBox.ico" />
   </ItemGroup>
   <ItemGroup>
