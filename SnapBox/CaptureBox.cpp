@@ -324,7 +324,7 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
    return -1;  // Failure
 }
 
-void SaveFile(HWND hWnd, const LPTSTR szPath, int fileType)
+void SaveFile(HWND hWnd, LPCTSTR szPath, int fileType)
 {
     PCAPTUREBOXINFO info = (PCAPTUREBOXINFO)GetWindowLongPtr(hWnd, GWLP_INFO);
 
@@ -353,85 +353,110 @@ void SaveFile(HWND hWnd, const LPTSTR szPath, int fileType)
         break;
     }
 
-    bitmap->Save(szPath, &clsidEncoder);
+    Status status = bitmap->Save(szPath, &clsidEncoder);
 
     delete bitmap;
-}
 
-UINT_PTR CALLBACK SaveHookProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(wParam);
-    UNREFERENCED_PARAMETER(lParam);
-
-    if (uMsg == WM_INITDIALOG)
+    if (status != Ok)
     {
-        hForeWindow = hDlg;
-        SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIconLarge);
-        SetWindowLongPtr(hDlg, GWL_EXSTYLE, GetWindowLongPtr(hDlg, GWL_EXSTYLE) | WS_EX_APPWINDOW);
-    }
-    else if (uMsg == WM_DESTROY)
-    {
-        hForeWindow = NULL;
-    }
+        LPCTSTR message = _T("The image could not be saved.");
+        if (status == AccessDenied)
+            message = _T("Access to the selected save location was denied.");
+        else if (status == OutOfMemory)
+            message = _T("There is not enough memory to save the image.");
+        else if (status == FileNotFound)
+            message = _T("The selected save location could not be found.");
 
-    return 0;
+        MessageBox(hWnd, message, _T("Save Error"), MB_OK | MB_ICONERROR);
+    }
 }
 
 void SaveCaptureBox(HWND hWnd)
 {
-    TCHAR filename[MAX_PATH];
-    filename[0] = '\0';
-
-    OPENFILENAME file;
-    memset(&file, 0, sizeof(OPENFILENAME));
-    file.lStructSize = sizeof(OPENFILENAME);
-    file.lpstrFilter = szSaveFilter;
-    file.nFilterIndex = options.defaultSaveType;
-    file.lpstrFile = filename;
-    file.nMaxFile = MAX_PATH;
-    file.lpfnHook = (LPOFNHOOKPROC)&SaveHookProc;
-    file.Flags = OFN_DONTADDTORECENT | OFN_LONGNAMES | OFN_PATHMUSTEXIST | OFN_EXPLORER | OFN_ENABLEHOOK;
-
-    HideAllCaptureBoxes(true);
-    if (!GetSaveFileName(&file))
+    COMDLG_FILTERSPEC filters[SAVETYPE_JPEG];
+    const TCHAR* filterString = szSaveFilter;
+    for (int i = 0; i < SAVETYPE_JPEG; i++)
     {
-        ShowAllCaptureBoxes();
+        filters[i].pszName = filterString;
+        filterString += _tcslen(filterString) + 1;
+        filters[i].pszSpec = filterString;
+        filterString += _tcslen(filterString) + 1;
+    }
+
+    const TCHAR* defaultExtensions[] = { _T("png"), _T("bmp"), _T("gif"), _T("jpeg") };
+
+    IFileSaveDialog* dialog = NULL;
+    HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
+    if (FAILED(hr))
+    {
+        MessageBox(hWnd, _T("Unable to display the Save As dialog."), _T("Save Error"), MB_OK | MB_ICONERROR);
         return;
     }
+
+    DWORD dialogOptions;
+    hr = dialog->GetOptions(&dialogOptions);
+    if (SUCCEEDED(hr))
+        hr = dialog->SetOptions(dialogOptions | FOS_FORCEFILESYSTEM | FOS_STRICTFILETYPES | FOS_OVERWRITEPROMPT);
+    if (SUCCEEDED(hr))
+        hr = dialog->SetFileTypes(SAVETYPE_JPEG, filters);
+    if (SUCCEEDED(hr))
+        hr = dialog->SetFileTypeIndex(options.defaultSaveType);
+    if (SUCCEEDED(hr))
+        hr = dialog->SetDefaultExtension(defaultExtensions[options.defaultSaveType - 1]);
+
+    HideAllCaptureBoxes(true);
+    hForeWindow = hWnd;
+    if (SUCCEEDED(hr))
+        hr = dialog->Show(hWnd);
+    hForeWindow = NULL;
     ShowAllCaptureBoxes();
 
-    if (!file.nFileExtension)
+    if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
     {
-        switch (file.nFilterIndex)
-        {
-        case SAVETYPE_PNG:
-            _tcscat_s(filename, MAX_PATH, _T(".png"));
-            break;
-        case SAVETYPE_BMP:
-            _tcscat_s(filename, MAX_PATH, _T(".bmp"));
-            break;
-        case SAVETYPE_GIF:
-            _tcscat_s(filename, MAX_PATH, _T(".gif"));
-            break;
-        case SAVETYPE_JPEG:
-            _tcscat_s(filename, MAX_PATH, _T(".jpeg"));
-            break;
-        }
+        dialog->Release();
+        return;
     }
 
-    if (GetFileAttributes(filename) != INVALID_FILE_ATTRIBUTES)
+    if (FAILED(hr))
     {
-        TCHAR szBuffer[255], fname[_MAX_FNAME], ext[_MAX_EXT];
-        _tsplitpath_s(filename, NULL, 0, NULL, 0, fname, _MAX_FNAME, ext, _MAX_EXT);
-        _tcscpy_s(szBuffer, 255, _T("The file "));
-        _tcscat_s(szBuffer, 255, fname);
-        _tcscat_s(szBuffer, 255, ext);
-        _tcscat_s(szBuffer, 255, _T(" already exists.  Overwrite?"));
-        if (MessageBox(hWnd, szBuffer, _T("Confirm Overwrite"), MB_YESNO | MB_ICONQUESTION) == IDNO)
-            return;
+        dialog->Release();
+        MessageBox(hWnd, _T("Unable to display the Save As dialog."), _T("Save Error"), MB_OK | MB_ICONERROR);
+        return;
     }
 
-    SaveFile(hWnd, filename, file.nFilterIndex);
+    IShellItem* result = NULL;
+    hr = dialog->GetResult(&result);
+    if (FAILED(hr))
+    {
+        dialog->Release();
+        MessageBox(hWnd, _T("Unable to retrieve the selected save location."), _T("Save Error"), MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    PWSTR filename = NULL;
+    hr = result->GetDisplayName(SIGDN_FILESYSPATH, &filename);
+    result->Release();
+    if (FAILED(hr))
+    {
+        dialog->Release();
+        MessageBox(hWnd, _T("Unable to retrieve the selected save location."), _T("Save Error"), MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    UINT fileType = 0;
+    hr = dialog->GetFileTypeIndex(&fileType);
+    dialog->Release();
+    if (FAILED(hr) || fileType < SAVETYPE_PNG || fileType > SAVETYPE_JPEG)
+    {
+        CoTaskMemFree(filename);
+        MessageBox(hWnd, _T("Unable to determine the selected file type."), _T("Save Error"), MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    std::wstring savePath(filename);
+    CoTaskMemFree(filename);
+
+    SaveFile(hWnd, savePath.c_str(), fileType);
 }
 
 void GetFileName(LPTSTR szPath, int fileType)

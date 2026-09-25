@@ -20,6 +20,8 @@
 #include <commctrl.h>
 #include <mapi.h>
 
+#include <string>
+
 // C RunTime Header Files
 #include <stdlib.h>
 #include <malloc.h>
