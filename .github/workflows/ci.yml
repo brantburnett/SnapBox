@@ -33,6 +33,7 @@ jobs:
 
   build:
     needs: prepare
+    if: github.event_name == 'pull_request'
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -62,6 +63,105 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: msbuild SnapBox.slnx /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:Version=${{ steps.version.outputs.version }}"
+
+      - name: Archive installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapbox-installer-${{ matrix.platform }}
+          path: SnapBoxInstall\bin\**\*.msi
+          if-no-files-found: error
+
+  build-and-sign:
+    needs: prepare
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    environment: artifact-signing
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.prepare.outputs.platforms) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: version
+        uses: CenterEdge/actions/dotnet/nuget-version@4f48ad964c672c289002dbb4c1e4a641ba19c771 # main
+        with:
+          tag-prefix: '[vV]'
+
+      - uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          runVcpkgInstall: false
+          vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
+
+      - uses: microsoft/setup-msbuild@v3
+
+      - name: Restore vcpkg dependencies
+        shell: pwsh
+        run: vcpkg install --triplet "${{ matrix.platform }}-windows-static"
+
+      - name: Build executable
+        shell: pwsh
+        run: msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ steps.version.outputs.version }}"
+
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign executable
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files: ${{ github.workspace }}\${{ matrix.platform }}\Release\SnapBox.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Build installer
+        shell: pwsh
+        run: msbuild SnapBoxInstall\SnapBoxInstall.wixproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ steps.version.outputs.version }}"
+
+      - name: Sign installer
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\SnapBoxInstall\bin
+          files-folder-filter: '*.msi'
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
 
       - name: Archive installer
         uses: actions/upload-artifact@v7
