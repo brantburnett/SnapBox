@@ -76,7 +76,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="SnapBox.ico">
+    <Image Include="..\images\SnapBox.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
