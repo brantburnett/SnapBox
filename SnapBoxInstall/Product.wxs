@@ -41,10 +41,13 @@
                   Advertise="yes"
                   WorkingDirectory="APPLICATIONFOLDER" />
       </File>
-      <File Id="WindowsAppRuntimeBootstrapper"
-            Directory="APPLICATIONFOLDER"
-            Source="$(var.SnapBox.TargetDir)Microsoft.WindowsAppRuntime.Bootstrap.dll"
-            Vital="yes" />
+      <!-- Include native runtime assets, but not C++ symbols or linker intermediates. -->
+      <Files Include="$(var.SnapBox.TargetDir)*.dll"
+             Directory="APPLICATIONFOLDER" />
+      <Files Include="$(var.SnapBox.TargetDir)*.winmd"
+             Directory="APPLICATIONFOLDER" />
+      <Files Include="$(var.SnapBox.TargetDir)*.pri"
+             Directory="APPLICATIONFOLDER" />
       <File Id="LicenseFile" Directory="APPLICATIONFOLDER" Source="..\Distribution\license.rtf" />
       <File Id="XercesLicenseFile"
             Directory="APPLICATIONFOLDER"
