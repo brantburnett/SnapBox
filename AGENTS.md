@@ -10,13 +10,18 @@ Unicode Win32 C++ project; its installer is a WiX project. The solution is
 - `SnapBoxInstall\SnapBoxInstall.wixproj`: MSI installer, built as part of the
   solution
 
-The native project uses the `v145` toolset and manifest-mode vcpkg. Its only
-vcpkg dependency is Xerces-C, installed using the `x64-windows-static`
-triplet in `vcpkg_installed\`.
+The native project uses the `v145` toolset, the Windows App SDK, and
+manifest-mode vcpkg. Its only vcpkg dependency is Xerces-C, installed using
+the `x64-windows-static` triplet in `vcpkg_installed\`.
+
+SnapBox is an unpackaged, framework-dependent Windows App SDK application.
+The SDK bootstrapper initializes before the application's entry point. If the
+matching runtime is missing, Windows displays acquisition UI; the MSI does not
+bundle or silently install the runtime.
 
 ## Prerequisites
 
-- Windows
+- Windows 10 version 1809 or later, or Windows 11
 - Visual Studio with the **Desktop development with C++** workload, the
   `v145` toolset, and a Windows 10/11 SDK
 - vcpkg; use the copy supplied with Visual Studio or a separately bootstrapped
@@ -60,7 +65,9 @@ msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Debug /p:Platform=x
 
 The application is emitted to `x64\<Configuration>\SnapBox.exe`. The solution
 build also produces the WiX installer output under the installer project's
-normal `bin\<Configuration>\` directory.
+normal `bin\<Configuration>\` directory. The Windows App SDK NuGet package is
+restored by MSBuild's `/restore` switch; run the executable on a machine
+without its matching runtime to validate the Windows-provided acquisition UI.
 
 There is no automated test project or test runner in this repository. Validate
 native changes by building the affected configuration, and manually exercise
