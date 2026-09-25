@@ -87,6 +87,8 @@
     </Feature>
 
     <WixVariable Id="WixUILicenseRtf" Value="..\Distribution\license.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="..\images\WixUIBanner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="..\images\WixUIDialog.bmp" />
     <Property Id="ApplicationFolderName" Value="SnapBox" />
     <Property Id="WixAppFolder" Value="WixPerMachineFolder" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch SnapBox" />
@@ -106,7 +108,7 @@
                   DllEntry="WixShellExec"
                   Impersonate="yes" />
 
-    <Icon Id="SnapBoxIcon" SourceFile="..\SnapBox\SnapBox.ico" />
+    <Icon Id="SnapBoxIcon" SourceFile="..\images\SnapBox.ico" />
     <Property Id="ARPPRODUCTICON" Value="SnapBoxIcon" />
   </Package>
 </Wix>

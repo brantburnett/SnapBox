@@ -252,7 +252,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="SnapBox.ico" />
+    <Image Include="..\images\SnapBox.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SnapBox.rc" />
