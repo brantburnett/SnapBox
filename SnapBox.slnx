@@ -1,5 +1,6 @@
 <Solution>
   <Configurations>
+    <Platform Name="ARM64" />
     <Platform Name="x64" />
   </Configurations>
   <Project Path="SnapBox/SnapBox.vcxproj" Id="c6b6706f-6e7e-412a-abea-e4dc4f10d86a" />
