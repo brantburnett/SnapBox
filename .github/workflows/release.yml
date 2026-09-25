@@ -67,7 +67,7 @@ jobs:
 
       - name: Restore vcpkg dependencies
         shell: pwsh
-        run: vcpkg install --triplet "${{ matrix.platform }}-windows-static"
+        run: vcpkg install --triplet "$("${{ matrix.platform }}".ToLowerInvariant())-windows-static"
 
       - name: Build executable
         shell: pwsh

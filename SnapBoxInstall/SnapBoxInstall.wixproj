@@ -1,10 +1,11 @@
 <Project Sdk="WixToolset.Sdk/7.0.0">
   <PropertyGroup>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
-    <VcpkgTriplet>$(Platform)-windows-static</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(Platform)' == 'x64'">x64-windows-static</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(Platform)' == 'ARM64'">arm64-windows-static</VcpkgTriplet>
     <XercesLicensePath>$(MSBuildProjectDirectory)\..\vcpkg_installed\$(VcpkgTriplet)\share\xerces-c\copyright</XercesLicensePath>
     <OutputType>Package</OutputType>
-    <OutputName>SnapBox-$(Platform)-$(Version)</OutputName>
+    <OutputName>SnapBox-$(Version)-$([System.String]::Copy('$(Platform)').ToLowerInvariant())</OutputName>
     <AcceptEula>wix7</AcceptEula>
     <DefineConstants>$(DefineConstants);Version=$(Version);InstallerVersion=$(InstallerVersion);XercesLicensePath=$(XercesLicensePath)</DefineConstants>
   </PropertyGroup>
