@@ -21,8 +21,8 @@
                       Bitness="always64" />
     </Property>
 
-    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILD >= 15063)"
-            Message="SnapBox requires 64-bit Windows 10 version 1703 or higher." />
+    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILD >= 17763)"
+            Message="SnapBox requires 64-bit Windows 10 version 1809 or higher." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="APPLICATIONFOLDER" Name="SnapBox" />
@@ -41,6 +41,10 @@
                   Advertise="yes"
                   WorkingDirectory="APPLICATIONFOLDER" />
       </File>
+      <File Id="WindowsAppRuntimeBootstrapper"
+            Directory="APPLICATIONFOLDER"
+            Source="$(var.SnapBox.TargetDir)Microsoft.WindowsAppRuntime.Bootstrap.dll"
+            Vital="yes" />
       <File Id="LicenseFile" Directory="APPLICATIONFOLDER" Source="..\Distribution\license.rtf" />
       <File Id="XercesLicenseFile"
             Directory="APPLICATIONFOLDER"
