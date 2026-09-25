@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "resource.h"
 #include "SizeMarks.h"
 
 using namespace Gdiplus;
@@ -8,106 +7,63 @@ using namespace Gdiplus;
 #define SIZEMARK_ROUNDING		3
 #define SIZEMARK_TRAPEZOID		3
 #define SIZEMARK_FONTSIZE		8
-#define SIZEMARK_CLOSEPADDING	1
-#define SIZEMARK_CLOSEBORDER	2
+#define SIZEMARK_CLOSEFONTSIZE	8
+#define SIZEMARK_CLOSEPADDING	3
 #define SIZEMARK_CLOSESPACING	4
+#define SIZEMARK_CLOSERIGHTPADDING	3
+#define SIZEMARK_CLOSECORNER	3
 
 Font* sizeFont = NULL;
+Font* closeFont = NULL;
 StringFormat* sizeStringFormat = NULL;
-Bitmap* biClose = NULL;
 
-UINT sizeHeight = 0, closeHeight = 0, closeWidth = 0;
+UINT sizeHeight = 0, closeGlyphHeight = 0, closeGlyphWidth = 0;
+RectF closeGlyphBounds;
 float fSizeHeight = 0;
 
 const Color SizeMarkColor1(0xcf, 0xce, 0xce);
 const Color SizeMarkColor2(0x99, 0x99, 0x99);
 const Color SizeMarkBorderColor(0, 0, 0);
-const Color CloseBoxHighColor(0xff, 0xff, 0xff);
-const Color CloseBoxLowColor(0x99, 0x99, 0x99);
-const ColorMatrix identityMatrix = {{{1, 0, 0, 0, 0}, {0, 1, 0, 0, 0}, {0, 0, 1, 0, 0}, {0, 0, 0, 1, 0}, {0, 0, 0, 0, 1}}};
+const Color CloseButtonHoverColor(0xc4, 0x2b, 0x1c);
+const Color CloseButtonPressedColor(0xa4, 0x26, 0x2c);
+const WCHAR CloseGlyph[] = L"\xE8BB";
 
-Bitmap* LoadBitmapResource(HINSTANCE hInstance, const TCHAR* bitmapName, const TCHAR* resType)
+void AddRoundedRectangle(GraphicsPath* path, const RectF& rect, REAL radius)
 {
-    HRSRC hResource = FindResource(hInstance, bitmapName, resType);
-    if (!hResource)
-        return NULL;
-
-    DWORD imageSize = SizeofResource(hInstance, hResource);
-    if (!imageSize)
-        return NULL;
-
-    const void* pResourceData = LockResource(LoadResource(hInstance, hResource));
-    if (!pResourceData)
-        return NULL;
-
-    HGLOBAL hBuffer = GlobalAlloc(GMEM_MOVEABLE, imageSize);
-    if (!hBuffer)
-        return NULL;
-
-    Bitmap* pResult = NULL;
-    void* pBuffer = GlobalLock(hBuffer);
-    if (!pBuffer)
-    {
-        GlobalFree(hBuffer);
-        return NULL;
-    }
-
-    CopyMemory(pBuffer, pResourceData, imageSize);
-
-    IStream* pStream = NULL;
-    if (CreateStreamOnHGlobal(hBuffer, FALSE, &pStream) == S_OK)
-    {
-        Bitmap* pBitmap = Bitmap::FromStream(pStream);
-        if (pBitmap && pBitmap->GetLastStatus() == Gdiplus::Ok)
-        {
-            pResult = pBitmap->Clone(0, 0, pBitmap->GetWidth(), pBitmap->GetHeight(), pBitmap->GetPixelFormat());
-            if (pResult && pResult->GetLastStatus() != Gdiplus::Ok)
-            {
-                delete pResult;
-                pResult = NULL;
-            }
-        }
-        delete pBitmap;
-        pStream->Release();
-    }
-
-    GlobalUnlock(hBuffer);
-    GlobalFree(hBuffer);
-    return pResult;
+    path->AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
+    path->AddArc(rect.GetRight() - radius * 2, rect.Y, radius * 2, radius * 2, 270, 90);
+    path->AddArc(rect.GetRight() - radius * 2, rect.GetBottom() - radius * 2, radius * 2, radius * 2, 0, 90);
+    path->AddArc(rect.X, rect.GetBottom() - radius * 2, radius * 2, radius * 2, 90, 90);
+    path->CloseFigure();
 }
 
 void ShutdownSizeMarks()
 {
     delete sizeFont;
     sizeFont = NULL;
+    delete closeFont;
+    closeFont = NULL;
     delete sizeStringFormat;
     sizeStringFormat = NULL;
-    delete biClose;
-    biClose = NULL;
 
     sizeHeight = 0;
-    closeHeight = 0;
-    closeWidth = 0;
+    closeGlyphHeight = 0;
+    closeGlyphWidth = 0;
+    memset(&closeGlyphBounds, 0, sizeof(closeGlyphBounds));
     fSizeHeight = 0;
 }
 
-void InitSizeMarks(HINSTANCE hInstance)
+void InitSizeMarks(HINSTANCE)
 {
     ShutdownSizeMarks();
-
-    biClose = LoadBitmapResource(hInstance, MAKEINTRESOURCE(IDB_CLOSEPNG), _T("PNG"));
-    if (biClose)
-    {
-        closeHeight = biClose->GetHeight();
-        closeWidth = biClose->GetWidth();
-    }
 
     Graphics* g = new Graphics(GetDesktopWindow());
 
     sizeFont = new Font(_T("Segoe UI"), SIZEMARK_FONTSIZE);
+    closeFont = new Font(_T("Segoe MDL2 Assets"), SIZEMARK_CLOSEFONTSIZE);
 
     sizeStringFormat = new StringFormat();
-    if (!g || g->GetLastStatus() != Ok || !sizeFont || sizeFont->GetLastStatus() != Ok || !sizeStringFormat || sizeStringFormat->GetLastStatus() != Ok)
+    if (!g || g->GetLastStatus() != Ok || !sizeFont || sizeFont->GetLastStatus() != Ok || !closeFont || closeFont->GetLastStatus() != Ok || !sizeStringFormat || sizeStringFormat->GetLastStatus() != Ok)
     {
         delete g;
         ShutdownSizeMarks();
@@ -121,7 +77,10 @@ void InitSizeMarks(HINSTANCE hInstance)
     RectF boundingBox;
     g->MeasureString(_T("Mg"), -1, sizeFont, PointF(0, 0), &boundingBox);
     sizeHeight = (int)ceilf(boundingBox.Height) + SIZEMARK_PADDING*2;
-    sizeHeight = max(sizeHeight, closeHeight + SIZEMARK_PADDING*2 + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSEBORDER*2);
+    g->MeasureString(CloseGlyph, -1, closeFont, PointF(0, 0), StringFormat::GenericTypographic(), &closeGlyphBounds);
+    closeGlyphHeight = (UINT)ceilf(closeGlyphBounds.Height);
+    closeGlyphWidth = (UINT)ceilf(closeGlyphBounds.Width);
+    sizeHeight = max(sizeHeight, closeGlyphHeight + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_PADDING*2);
     fSizeHeight = (float)sizeHeight;
 
     delete g;
@@ -129,7 +88,7 @@ void InitSizeMarks(HINSTANCE hInstance)
 
 void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
 {
-    if (!g || !options || !options->lpRect || !options->lpCropRect || !sizeFont || !sizeStringFormat)
+    if (!g || !options || !options->lpRect || !options->lpCropRect || !sizeFont || !closeFont || !sizeStringFormat)
         return;
 
     g->SetTextRenderingHint(TextRenderingHintAntiAlias);
@@ -152,7 +111,9 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
 
     if (options->dwLocation & (SIZEMARKLOCATION_TOP | SIZEMARKLOCATION_BOTTOM))
     {
-        bool drawClose = biClose && (bool)(options->dwOptions & SIZEMARKOPTION_SHOWCLOSE);
+        bool drawClose = !!(options->dwOptions & SIZEMARKOPTION_SHOWCLOSE);
+        float closeButtonWidth = (float)(closeGlyphWidth + SIZEMARK_CLOSEPADDING*2);
+        float closeButtonHeight = (float)(closeGlyphHeight + SIZEMARK_CLOSEPADDING*2);
 
         _itot_s((int)ceilf(options->lpCropRect->Width), sizeStr, 20, 10);
         _tcscat_s(sizeStr, 20, _T("px"));
@@ -160,7 +121,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
         g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
         boundingBox.Width += SIZEMARK_PADDING*2;
         if (drawClose)
-            boundingBox.Width += closeWidth + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSEBORDER*2;
+            boundingBox.Width += closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
 
         if (boundingBox.Width > width)
         {
@@ -168,13 +129,10 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
             g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
             boundingBox.Width += SIZEMARK_PADDING*2 + SIZEMARK_CLOSESPACING;
             if (drawClose)
-                boundingBox.Width += closeWidth + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSEBORDER*2;
+                boundingBox.Width += closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
         }
         if (drawClose && boundingBox.Width > width)
-        {
             drawClose = false;
-            width -= closeWidth + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSEBORDER*2;
-        }
 
         if (boundingBox.Width <= width)
         {
@@ -220,7 +178,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
             delete pen;
 
             if (drawClose)
-                boundingBox.Width -= closeWidth + SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSEBORDER*2;
+                boundingBox.Width -= closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
 
             brush = new SolidBrush(Color(opacityByte, 0, 0, 0));
             g->DrawString(sizeStr, -1, sizeFont, boundingBox, sizeStringFormat, brush);
@@ -230,47 +188,38 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
 
             if (drawClose)
             {
-                boundingBox.X += boundingBox.Width + SIZEMARK_CLOSESPACING;
-                boundingBox.Y = boundingBox.Height/2 - (float)closeHeight/2;
-                boundingBox.Width = (float)closeWidth;
-                boundingBox.Height = (float)closeHeight;
-
-                ImageAttributes* attr = new ImageAttributes();
-                ColorMatrix* matrix = new ColorMatrix();
-                memcpy(matrix, &identityMatrix, sizeof(ColorMatrix));
-                matrix->m[3][3] = options->fOpacity;
-                attr->SetColorMatrix(matrix);
-
-                g->DrawImage(biClose, boundingBox, 0.0, 0.0, (float)closeWidth, (float)closeHeight, UnitPixel, attr);
-
-                delete attr;
-                delete matrix;
+                RectF closeButtonRect(
+                    boundingBox.X + boundingBox.Width + SIZEMARK_CLOSESPACING,
+                    boundingBox.Height/2 - closeButtonHeight/2,
+                    closeButtonWidth,
+                    closeButtonHeight);
 
                 if (options->lpCloseRect)
                 {
-                    options->lpCloseRect->left = (int)floorf(boundingBox.X);
-                    options->lpCloseRect->top = (int)floorf(boundingBox.Y);
-                    options->lpCloseRect->right = (int)ceilf(boundingBox.GetRight());
-                    options->lpCloseRect->bottom = (int)ceilf(boundingBox.GetBottom());
+                    float closeRectOffsetY = options->dwLocation & SIZEMARKLOCATION_BOTTOM
+                        ? (float)(options->lpRect->bottom - options->lpRect->top - sizeHeight - 1)
+                        : 0;
+                    options->lpCloseRect->left = (int)floorf(closeButtonRect.X);
+                    options->lpCloseRect->top = (int)floorf(closeButtonRect.Y + closeRectOffsetY);
+                    options->lpCloseRect->right = (int)ceilf(closeButtonRect.GetRight());
+                    options->lpCloseRect->bottom = (int)ceilf(closeButtonRect.GetBottom() + closeRectOffsetY);
                 }
 
                 if (options->dwOptions & SIZEMARKOPTION_HOVERCLOSE)
                 {
-                    boundingBox.X -= SIZEMARK_CLOSEPADDING + SIZEMARK_CLOSEBORDER;
-                    boundingBox.Y -= SIZEMARK_CLOSEPADDING + SIZEMARK_CLOSEBORDER;
-                    boundingBox.Width += SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSEBORDER*2;
-                    boundingBox.Height += SIZEMARK_CLOSEPADDING*2 + SIZEMARK_CLOSEBORDER*2;
-
-                    pen = new Pen(Color((options->dwOptions & SIZEMARKOPTION_CLOSEDOWN ? CloseBoxLowColor : CloseBoxHighColor).GetValue() & 0xffffff | opacityArgb), (float)SIZEMARK_CLOSEBORDER);
-                    g->DrawLine(pen, boundingBox.X, boundingBox.Y, boundingBox.X, boundingBox.Y + boundingBox.Height - 1);
-                    g->DrawLine(pen, boundingBox.X, boundingBox.Y, boundingBox.X + boundingBox.Width - 1, boundingBox.Y);
-                    delete pen;
-
-                    pen = new Pen(Color((options->dwOptions & SIZEMARKOPTION_CLOSEDOWN ? CloseBoxHighColor : CloseBoxLowColor).GetValue() & 0xffffff | opacityArgb), (float)SIZEMARK_CLOSEBORDER);
-                    g->DrawLine(pen, boundingBox.X, boundingBox.Y + boundingBox.Height - 1, boundingBox.X + boundingBox.Width - 1, boundingBox.Y + boundingBox.Height - 1);
-                    g->DrawLine(pen, boundingBox.X + boundingBox.Width - 1, boundingBox.Y, boundingBox.X + boundingBox.Width - 1, boundingBox.Y + boundingBox.Height - 1);
-                    delete pen;
+                    GraphicsPath closePath;
+                    AddRoundedRectangle(&closePath, closeButtonRect, SIZEMARK_CLOSECORNER);
+                    Color closeButtonColor = options->dwOptions & SIZEMARKOPTION_CLOSEDOWN ? CloseButtonPressedColor : CloseButtonHoverColor;
+                    SolidBrush closeButtonBrush(Color((closeButtonColor.GetValue() & 0xffffff) | opacityArgb));
+                    g->FillPath(&closeButtonBrush, &closePath);
                 }
+
+                BYTE closeGlyphColor = options->dwOptions & SIZEMARKOPTION_HOVERCLOSE ? 0xff : 0x00;
+                SolidBrush closeGlyphBrush(Color(opacityByte, closeGlyphColor, closeGlyphColor, closeGlyphColor));
+                PointF closeGlyphOrigin(
+                    closeButtonRect.X + (closeButtonRect.Width - closeGlyphBounds.Width)/2 - closeGlyphBounds.X,
+                    closeButtonRect.Y + (closeButtonRect.Height - closeGlyphBounds.Height)/2 - closeGlyphBounds.Y);
+                g->DrawString(CloseGlyph, -1, closeFont, closeGlyphOrigin, StringFormat::GenericTypographic(), &closeGlyphBrush);
             }
 
             g->Restore(gState);
