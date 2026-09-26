@@ -61,7 +61,7 @@ BEGIN
         MENUITEM "&Copy",                       IDM_COPY,MFT_STRING,MFS_ENABLED
         MENUITEM "&Save As...",                 IDM_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM "&Quicksave",                  IDM_QUICKSAVE,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Email...",                   IDM_EMAIL,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Share...",                   IDM_SHARE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Close &All",                  IDM_CLOSEALL,MFT_STRING,MFS_ENABLED
         MENUITEM "C&lose",                      IDM_CLOSE,MFT_STRING,MFS_ENABLED

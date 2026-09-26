@@ -18,7 +18,7 @@
     <ClCompile Include="CaptureBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Email.cpp">
+    <ClCompile Include="Share.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Options.cpp">
@@ -44,7 +44,7 @@
     <ClInclude Include="CaptureBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Email.h">
+    <ClInclude Include="Share.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LimitSingleInstance.h">
