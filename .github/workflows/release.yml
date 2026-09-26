@@ -127,15 +127,16 @@ jobs:
           MSIX_PACKAGE_IDENTITY_NAME: ${{ vars.MSIX_PACKAGE_IDENTITY_NAME }}
           MSIX_PACKAGE_PUBLISHER: ${{ vars.MSIX_PACKAGE_PUBLISHER }}
           MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME }}
-        run: >
-          .\tools\New-SnapBoxMsix.ps1
-          -Platform ${{ matrix.platform }}
-          -ApplicationDirectory .\${{ matrix.platform }}\Release
-          -OutputDirectory .\artifacts\msix
-          -Version "${{ steps.version.outputs.version }}"
-          -PackageIdentityName "$env:MSIX_PACKAGE_IDENTITY_NAME"
-          -PackagePublisher "$env:MSIX_PACKAGE_PUBLISHER"
-          -PackagePublisherDisplayName "$env:MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME"
+        run: |
+          $architecture = "${{ matrix.platform }}".ToLowerInvariant()
+          .\tools\New-SnapBoxMsix.ps1 `
+            -Platform ${{ matrix.platform }} `
+            -ApplicationDirectory ".\artifacts\bin\SnapBox\release-$architecture" `
+            -OutputDirectory .\artifacts\msix `
+            -Version "${{ steps.version.outputs.version }}" `
+            -PackageIdentityName "$env:MSIX_PACKAGE_IDENTITY_NAME" `
+            -PackagePublisher "$env:MSIX_PACKAGE_PUBLISHER" `
+            -PackagePublisherDisplayName "$env:MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME"
 
       - name: Build installer
         shell: pwsh

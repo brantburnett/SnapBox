@@ -27,7 +27,7 @@ For a local package, build the desired Release architecture, then run:
 ```powershell
 .\tools\New-SnapBoxMsix.ps1 `
   -Platform x64 `
-  -ApplicationDirectory .\x64\Release `
+  -ApplicationDirectory .\artifacts\bin\SnapBox\release-x64 `
   -OutputDirectory .\artifacts\msix `
   -Version 0.2.0 `
   -PackageIdentityName '<identity name>' `
