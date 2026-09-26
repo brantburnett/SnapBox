@@ -105,7 +105,9 @@ jobs:
 
       - name: Build MSIX package
         shell: pwsh
-        run: msbuild SnapBoxPackage\SnapBoxPackage.wapproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ needs.prepare.outputs.version }}" "/p:MSIXPackagePublisher=${{ vars.MSIX_PACKAGE_PUBLISHER }}"
+        run: |
+          $env:MSIXPackagePublisher = '${{ vars.MSIX_PACKAGE_PUBLISHER }}'
+          msbuild SnapBoxPackage\SnapBoxPackage.wapproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ needs.prepare.outputs.version }}"
 
       - name: Sign MSIX package
         uses: azure/artifact-signing-action@v2
