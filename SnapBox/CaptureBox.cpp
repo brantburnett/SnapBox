@@ -6,6 +6,8 @@
 #include "Share.h"
 #include "SizeMarks.h"
 
+#include <vector>
+
 using namespace Gdiplus;
 
 #define MAX_LOADSTRING		100
@@ -23,6 +25,7 @@ TCHAR szSaveFilter[MAX_FILTERSTRING];
 PCAPTUREBOXCLOSEINFO prevCaptureBox[MAX_CAPTURE_HISTORY];
 int savedCaptureBoxes = 0;
 PCAPTUREBOXWINDOW openCaptureBoxes = NULL;
+std::vector<std::wstring> dragDropFiles;
 
 const SolidBrush* pTransparentBrush;
 const SolidBrush* pCropBrush;
@@ -31,6 +34,331 @@ const Pen* pBorderPen;
 LRESULT CALLBACK	CaptureBoxWndProc(HWND, UINT, WPARAM, LPARAM);
 void				SetTracking(HWND hWnd, PCAPTUREBOXINFO info);
 void				AnimateFrameFade(HWND hWnd, PCAPTUREBOXINFO info, float targetOpacity);
+
+class CaptureFormatEnumerator : public IEnumFORMATETC
+{
+public:
+    CaptureFormatEnumerator() : referenceCount(1), index(0)
+    {
+        format.cfFormat = CF_HDROP;
+        format.ptd = NULL;
+        format.dwAspect = DVASPECT_CONTENT;
+        format.lindex = -1;
+        format.tymed = TYMED_HGLOBAL;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID requestedInterface, void** object) override
+    {
+        if (!object)
+            return E_POINTER;
+
+        if (requestedInterface == IID_IUnknown || requestedInterface == IID_IEnumFORMATETC)
+        {
+            *object = static_cast<IEnumFORMATETC*>(this);
+            AddRef();
+            return S_OK;
+        }
+
+        *object = NULL;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override
+    {
+        return InterlockedIncrement(&referenceCount);
+    }
+
+    ULONG STDMETHODCALLTYPE Release() override
+    {
+        ULONG count = InterlockedDecrement(&referenceCount);
+        if (!count)
+            delete this;
+        return count;
+    }
+
+    HRESULT STDMETHODCALLTYPE Next(ULONG count, FORMATETC* formats, ULONG* fetched) override
+    {
+        if (!formats || (count != 1 && !fetched))
+            return E_INVALIDARG;
+
+        if (fetched)
+            *fetched = 0;
+
+        ULONG returned = 0;
+        while (returned < count && !index)
+        {
+            formats[returned] = format;
+            ++returned;
+            ++index;
+        }
+
+        if (fetched)
+            *fetched = returned;
+        return returned == count ? S_OK : S_FALSE;
+    }
+
+    HRESULT STDMETHODCALLTYPE Skip(ULONG count) override
+    {
+        const ULONG remaining = 1 - index;
+        if (count > remaining)
+        {
+            index = 1;
+            return S_FALSE;
+        }
+
+        index += count;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE Reset() override
+    {
+        index = 0;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE Clone(IEnumFORMATETC** clone) override
+    {
+        if (!clone)
+            return E_POINTER;
+
+        CaptureFormatEnumerator* enumerator = new CaptureFormatEnumerator();
+        enumerator->index = index;
+        *clone = enumerator;
+        return S_OK;
+    }
+
+private:
+    LONG referenceCount;
+    ULONG index;
+    FORMATETC format;
+};
+
+class CaptureFileDataObject : public IDataObject
+{
+public:
+    explicit CaptureFileDataObject(const std::wstring& path) : referenceCount(1), dropFiles(CreateDropFiles(path))
+    {
+    }
+
+    ~CaptureFileDataObject()
+    {
+        if (dropFiles)
+            GlobalFree(dropFiles);
+    }
+
+    bool IsValid() const
+    {
+        return dropFiles != NULL;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID requestedInterface, void** object) override
+    {
+        if (!object)
+            return E_POINTER;
+
+        if (requestedInterface == IID_IUnknown || requestedInterface == IID_IDataObject)
+        {
+            *object = static_cast<IDataObject*>(this);
+            AddRef();
+            return S_OK;
+        }
+
+        *object = NULL;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override
+    {
+        return InterlockedIncrement(&referenceCount);
+    }
+
+    ULONG STDMETHODCALLTYPE Release() override
+    {
+        ULONG count = InterlockedDecrement(&referenceCount);
+        if (!count)
+            delete this;
+        return count;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetData(FORMATETC* requestedFormat, STGMEDIUM* medium) override
+    {
+        if (!medium)
+            return E_POINTER;
+
+        ZeroMemory(medium, sizeof(*medium));
+        if (!SupportsFormat(requestedFormat))
+            return DV_E_FORMATETC;
+
+        HGLOBAL copy = CopyGlobal(dropFiles);
+        if (!copy)
+            return E_OUTOFMEMORY;
+
+        medium->tymed = TYMED_HGLOBAL;
+        medium->hGlobal = copy;
+        medium->pUnkForRelease = NULL;
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetDataHere(FORMATETC*, STGMEDIUM*) override
+    {
+        return DATA_E_FORMATETC;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryGetData(FORMATETC* requestedFormat) override
+    {
+        return SupportsFormat(requestedFormat) ? S_OK : DV_E_FORMATETC;
+    }
+
+    HRESULT STDMETHODCALLTYPE GetCanonicalFormatEtc(FORMATETC*, FORMATETC* equivalentFormat) override
+    {
+        if (!equivalentFormat)
+            return E_POINTER;
+
+        equivalentFormat->ptd = NULL;
+        return DATA_S_SAMEFORMATETC;
+    }
+
+    HRESULT STDMETHODCALLTYPE SetData(FORMATETC*, STGMEDIUM*, BOOL) override
+    {
+        return E_NOTIMPL;
+    }
+
+    HRESULT STDMETHODCALLTYPE EnumFormatEtc(DWORD direction, IEnumFORMATETC** enumerator) override
+    {
+        if (!enumerator)
+            return E_POINTER;
+        if (direction != DATADIR_GET)
+            return E_NOTIMPL;
+
+        *enumerator = new CaptureFormatEnumerator();
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override
+    {
+        return OLE_E_ADVISENOTSUPPORTED;
+    }
+
+    HRESULT STDMETHODCALLTYPE DUnadvise(DWORD) override
+    {
+        return OLE_E_ADVISENOTSUPPORTED;
+    }
+
+    HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA**) override
+    {
+        return OLE_E_ADVISENOTSUPPORTED;
+    }
+
+private:
+    static HGLOBAL CreateDropFiles(const std::wstring& path)
+    {
+        const SIZE_T bytes = sizeof(DROPFILES) + (path.length() + 2) * sizeof(wchar_t);
+        HGLOBAL memory = GlobalAlloc(GHND, bytes);
+        if (!memory)
+            return NULL;
+
+        DROPFILES* files = static_cast<DROPFILES*>(GlobalLock(memory));
+        if (!files)
+        {
+            GlobalFree(memory);
+            return NULL;
+        }
+
+        files->pFiles = sizeof(DROPFILES);
+        files->fWide = TRUE;
+        memcpy(static_cast<BYTE*>(static_cast<void*>(files)) + files->pFiles,
+            path.c_str(), (path.length() + 1) * sizeof(wchar_t));
+        GlobalUnlock(memory);
+        return memory;
+    }
+
+    static HGLOBAL CopyGlobal(HGLOBAL source)
+    {
+        const SIZE_T bytes = GlobalSize(source);
+        HGLOBAL copy = GlobalAlloc(GHND, bytes);
+        if (!copy)
+            return NULL;
+
+        const void* sourceData = GlobalLock(source);
+        void* copyData = GlobalLock(copy);
+        if (!sourceData || !copyData)
+        {
+            if (sourceData)
+                GlobalUnlock(source);
+            if (copyData)
+                GlobalUnlock(copy);
+            GlobalFree(copy);
+            return NULL;
+        }
+
+        memcpy(copyData, sourceData, bytes);
+        GlobalUnlock(copy);
+        GlobalUnlock(source);
+        return copy;
+    }
+
+    static bool SupportsFormat(const FORMATETC* format)
+    {
+        return format && format->cfFormat == CF_HDROP &&
+            format->dwAspect == DVASPECT_CONTENT &&
+            (format->tymed & TYMED_HGLOBAL);
+    }
+
+    LONG referenceCount;
+    HGLOBAL dropFiles;
+};
+
+class CaptureDropSource : public IDropSource
+{
+public:
+    CaptureDropSource() : referenceCount(1)
+    {
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID requestedInterface, void** object) override
+    {
+        if (!object)
+            return E_POINTER;
+
+        if (requestedInterface == IID_IUnknown || requestedInterface == IID_IDropSource)
+        {
+            *object = static_cast<IDropSource*>(this);
+            AddRef();
+            return S_OK;
+        }
+
+        *object = NULL;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override
+    {
+        return InterlockedIncrement(&referenceCount);
+    }
+
+    ULONG STDMETHODCALLTYPE Release() override
+    {
+        ULONG count = InterlockedDecrement(&referenceCount);
+        if (!count)
+            delete this;
+        return count;
+    }
+
+    HRESULT STDMETHODCALLTYPE QueryContinueDrag(BOOL escapePressed, DWORD keyState) override
+    {
+        if (escapePressed)
+            return DRAGDROP_S_CANCEL;
+        return keyState & MK_LBUTTON ? S_OK : DRAGDROP_S_DROP;
+    }
+
+    HRESULT STDMETHODCALLTYPE GiveFeedback(DWORD) override
+    {
+        return DRAGDROP_S_USEDEFAULTCURSORS;
+    }
+
+private:
+    LONG referenceCount;
+};
 
 ATOM RegisterCaptureBoxClass(HINSTANCE hInstance)
 {
@@ -76,6 +404,10 @@ void CleanupCaptureBoxResources()
 
     delete pBorderPen;
     pBorderPen = NULL;
+
+    for (const std::wstring& path : dragDropFiles)
+        DeleteFile(path.c_str());
+    dragDropFiles.clear();
 }
 
 PCAPTUREBOXWINDOW AddCaptureBoxWindow(HWND hWnd)
@@ -324,7 +656,7 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
    return -1;  // Failure
 }
 
-void SaveFile(HWND hWnd, LPCTSTR szPath, int fileType)
+bool SaveFile(HWND hWnd, LPCTSTR szPath, int fileType)
 {
     PCAPTUREBOXINFO info = (PCAPTUREBOXINFO)GetWindowLongPtr(hWnd, GWLP_INFO);
 
@@ -369,6 +701,8 @@ void SaveFile(HWND hWnd, LPCTSTR szPath, int fileType)
 
         MessageBox(hWnd, message, _T("Save Error"), MB_OK | MB_ICONERROR);
     }
+
+    return status == Ok;
 }
 
 void SaveCaptureBox(HWND hWnd)
@@ -505,6 +839,86 @@ void QuickSaveCaptureBox(HWND hWnd)
     GetFileName(szPath, options.defaultSaveType);
 
     SaveFile(hWnd, szPath, options.defaultSaveType);
+}
+
+bool CreateDragDropFile(HWND hWnd, std::wstring& path)
+{
+    TCHAR tempDirectory[MAX_PATH];
+    DWORD length = GetTempPath(MAX_PATH, tempDirectory);
+    if (!length || length >= MAX_PATH)
+    {
+        MessageBox(hWnd, _T("Unable to determine a temporary folder for the dragged image."),
+            _T("Copy Error"), MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    TCHAR temporaryPath[MAX_PATH];
+    if (!GetTempFileName(tempDirectory, _T("SBX"), 0, temporaryPath))
+    {
+        MessageBox(hWnd, _T("Unable to create a temporary file for the dragged image."),
+            _T("Copy Error"), MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    if (!DeleteFile(temporaryPath))
+    {
+        MessageBox(hWnd, _T("Unable to prepare a temporary file for the dragged image."),
+            _T("Copy Error"), MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    std::wstring reservedPath(temporaryPath);
+    const size_t nameStart = reservedPath.find_last_of(_T("\\/")) + 1;
+    const size_t extensionStart = reservedPath.find_last_of(_T('.'));
+    const std::wstring uniqueSuffix = reservedPath.substr(nameStart, extensionStart - nameStart);
+
+    TCHAR defaultPath[MAX_PATH];
+    _tcscpy_s(defaultPath, MAX_PATH, tempDirectory);
+    size_t pathLength = _tcslen(defaultPath);
+    if (pathLength && defaultPath[pathLength - 1] == _T('\\'))
+        defaultPath[pathLength - 1] = _T('\0');
+    GetFileName(defaultPath, options.defaultSaveType);
+
+    std::wstring namedPath(defaultPath);
+    namedPath.insert(namedPath.find_last_of(_T('.')), _T("_") + uniqueSuffix);
+    if (!SaveFile(hWnd, namedPath.c_str(), options.defaultSaveType))
+    {
+        DeleteFile(namedPath.c_str());
+        return false;
+    }
+
+    path = namedPath;
+    return true;
+}
+
+void StartCopyDrag(HWND hWnd)
+{
+    std::wstring path;
+    if (!CreateDragDropFile(hWnd, path))
+        return;
+
+    CaptureFileDataObject* dataObject = new CaptureFileDataObject(path);
+    if (!dataObject->IsValid())
+    {
+        dataObject->Release();
+        DeleteFile(path.c_str());
+        MessageBox(hWnd, _T("Unable to prepare the dragged image."),
+            _T("Copy Error"), MB_OK | MB_ICONERROR);
+        return;
+    }
+
+    dragDropFiles.push_back(path);
+    CaptureDropSource* dropSource = new CaptureDropSource();
+    DWORD effect = DROPEFFECT_NONE;
+    HRESULT result = DoDragDrop(dataObject, dropSource, DROPEFFECT_COPY, &effect);
+    dropSource->Release();
+    dataObject->Release();
+
+    if (FAILED(result))
+    {
+        MessageBox(hWnd, _T("Unable to start the copy drag operation."),
+            _T("Copy Error"), MB_OK | MB_ICONERROR);
+    }
 }
 
 void ShareCaptureBox(HWND hWnd)
@@ -1188,7 +1602,10 @@ LRESULT CALLBACK CaptureBoxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         TrackPopupMenu(hPopup, TPM_RIGHTBUTTON, p.x, p.y, 0, hWnd, NULL);
         break;
     case WM_LBUTTONDOWN:
-        CaptureMouseDown(hWnd, lParam);
+        if (GetKeyState(VK_CONTROL) & 0x8000)
+            StartCopyDrag(hWnd);
+        else
+            CaptureMouseDown(hWnd, lParam);
         break;
     case WM_MOUSEMOVE:
         CaptureMouseMove(hWnd, lParam);
