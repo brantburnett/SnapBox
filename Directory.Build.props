@@ -3,12 +3,14 @@
     <Version Condition="'$(Version)' == ''">0.2.0</Version>
     <VersionCore>$([System.Text.RegularExpressions.Regex]::Match('$(Version)', '^\d+\.\d+\.\d+').Value)</VersionCore>
     <InstallerVersion Condition="'$(VersionCore)' != ''">$(VersionCore)</InstallerVersion>
+    <MSIXPackageVersion Condition="'$(InstallerVersion)' != ''">$(InstallerVersion).0</MSIXPackageVersion>
+    <MSIXPackagePublisher Condition="'$(MSIXPackagePublisher)' == ''">CN=BurnettSoft</MSIXPackagePublisher>
     <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts\</ArtifactsPath>
     <ArtifactConfiguration>$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</ArtifactConfiguration>
     <ArtifactPlatform>$([System.String]::Copy('$(Platform)').ToLowerInvariant())</ArtifactPlatform>
     <ArtifactConfigurationPlatform>$(ArtifactConfiguration)-$(ArtifactPlatform)</ArtifactConfigurationPlatform>
     <BaseOutputPath>$(ArtifactsPath)bin\$(MSBuildProjectName)\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(ArtifactsPath)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>$(ArtifactsPath)obj\$(MSBuildProjectName)\$(ArtifactConfigurationPlatform)\</BaseIntermediateOutputPath>
     <ArtifactsBinPath>$(ArtifactsPath)bin\$(MSBuildProjectName)\$(ArtifactConfigurationPlatform)\</ArtifactsBinPath>
     <ArtifactsObjPath>$(ArtifactsPath)obj\$(MSBuildProjectName)\$(ArtifactConfigurationPlatform)\</ArtifactsObjPath>
     <ArtifactsPublishPath>$(ArtifactsPath)publish\$(ArtifactConfiguration)\</ArtifactsPublishPath>

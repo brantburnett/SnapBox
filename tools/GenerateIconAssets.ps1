@@ -100,16 +100,6 @@ function Save-Png([System.Drawing.Bitmap]$bitmap, [string]$path) {
     $bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
 }
 
-function Save-OpaqueBitmap([System.Drawing.Bitmap]$bitmap, [string]$path) {
-    $opaqueBitmap = [System.Drawing.Bitmap]::new($bitmap.Width, $bitmap.Height, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
-    $graphics = [System.Drawing.Graphics]::FromImage($opaqueBitmap)
-    $graphics.Clear([System.Drawing.Color]::White)
-    $graphics.DrawImageUnscaled($bitmap, 0, 0)
-    $graphics.Dispose()
-    $opaqueBitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Bmp)
-    $opaqueBitmap.Dispose()
-}
-
 function Write-Icon([System.Drawing.Bitmap[]]$bitmaps, [string]$path) {
     $streams = @()
     try {
@@ -190,37 +180,6 @@ function New-BrandAsset(
     return $bitmap
 }
 
-function New-InstallerBrandAsset(
-    [int]$width,
-    [int]$height,
-    [ValidateSet('Right', 'Top')]
-    [string]$markPosition) {
-    $bitmap = New-ArgbBitmap $width $height
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $backgroundBrush = [System.Drawing.Drawing2D.LinearGradientBrush]::new(
-        [System.Drawing.Point]::new(0, 0),
-        [System.Drawing.Point]::new($width, $height),
-        [System.Drawing.Color]::FromArgb(255, 245, 252, 255),
-        [System.Drawing.Color]::FromArgb(255, 173, 224, 247))
-    $graphics.FillRectangle($backgroundBrush, 0, 0, $width, $height)
-
-    $markSize = [Math]::Min($height * 0.82, $width * 0.45)
-    $markX = ($width - $markSize) / 2
-    $markY = ($height - $markSize) / 2
-    if ($markPosition -eq 'Right') {
-        $markX = $width - $markSize - ($height * 0.08)
-    }
-    else {
-        $markY = $height * 0.06
-    }
-    Draw-SnapBoxMark $graphics $markX $markY $markSize
-
-    $backgroundBrush.Dispose()
-    $graphics.Dispose()
-    return $bitmap
-}
-
 $iconSizes = @(16, 24, 32, 48, 64, 128, 256)
 $iconBitmaps = @()
 try {
@@ -268,26 +227,4 @@ try {
 }
 finally {
     $splashAsset.Dispose()
-}
-
-$banner = New-InstallerBrandAsset 493 58 Right
-try {
-    Save-OpaqueBitmap $banner (Join-Path $imagesDirectory 'WixUIBanner.bmp')
-}
-finally {
-    $banner.Dispose()
-}
-
-$dialog = New-ArgbBitmap 493 312
-try {
-    $graphics = [System.Drawing.Graphics]::FromImage($dialog)
-    $graphics.Clear([System.Drawing.Color]::White)
-    $panel = New-InstallerBrandAsset 164 312 Top
-    $graphics.DrawImageUnscaled($panel, 0, 0)
-    $panel.Dispose()
-    $graphics.Dispose()
-    Save-OpaqueBitmap $dialog (Join-Path $imagesDirectory 'WixUIDialog.bmp')
-}
-finally {
-    $dialog.Dispose()
 }
