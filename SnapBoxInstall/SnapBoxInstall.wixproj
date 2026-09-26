@@ -6,6 +6,8 @@
     <XercesLicensePath>$(MSBuildProjectDirectory)\..\vcpkg_installed\$(VcpkgTriplet)\share\xerces-c\copyright</XercesLicensePath>
     <OutputType>Package</OutputType>
     <OutputName>SnapBox-$(Version)-$([System.String]::Copy('$(Platform)').ToLowerInvariant())</OutputName>
+    <OutputPath>$(ArtifactsPublishPath)</OutputPath>
+    <IntermediateOutputPath>$(ArtifactsObjPath)</IntermediateOutputPath>
     <AcceptEula>wix7</AcceptEula>
     <DefineConstants>$(DefineConstants);Version=$(Version);InstallerVersion=$(InstallerVersion);XercesLicensePath=$(XercesLicensePath)</DefineConstants>
   </PropertyGroup>

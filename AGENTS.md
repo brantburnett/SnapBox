@@ -78,13 +78,16 @@ msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Debug /p:Platform=x
 ```
 
 The application is emitted to
-`<Platform>\<Configuration>\SnapBox.exe` (for example,
-`ARM64\Release\SnapBox.exe`). The solution build also produces an MSI under
-`SnapBoxInstall\bin\<Platform>\<Configuration>\`, with the platform in its
-name (for example, `SnapBox-<version>-arm64.msi`). The Windows App SDK NuGet
-package is restored by MSBuild's `/restore` switch; run the executable on a
-machine without its matching runtime to validate the Windows-provided
-acquisition UI.
+`artifacts\bin\SnapBox\<configuration>-<architecture>\SnapBox.exe` (for
+example, `artifacts\bin\SnapBox\release-arm64\SnapBox.exe`). The solution
+build also produces an MSI under `artifacts\publish\<configuration>\`, with
+the platform in its name (for example,
+`artifacts\publish\release\SnapBox-<version>-arm64.msi`). Intermediate files
+are stored under `artifacts\obj\<project>\<configuration>-<architecture>\`.
+All configuration and architecture path components are lowercase. The Windows
+App SDK NuGet package is restored by MSBuild's `/restore` switch; run the
+executable on a machine without its matching runtime to validate the
+Windows-provided acquisition UI.
 
 There is no automated test project or test runner in this repository. Validate
 native changes by building the affected configuration, and manually exercise

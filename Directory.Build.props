@@ -3,5 +3,14 @@
     <Version Condition="'$(Version)' == ''">0.2.0</Version>
     <VersionCore>$([System.Text.RegularExpressions.Regex]::Match('$(Version)', '^\d+\.\d+\.\d+').Value)</VersionCore>
     <InstallerVersion Condition="'$(VersionCore)' != ''">$(VersionCore)</InstallerVersion>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts\</ArtifactsPath>
+    <ArtifactConfiguration>$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</ArtifactConfiguration>
+    <ArtifactPlatform>$([System.String]::Copy('$(Platform)').ToLowerInvariant())</ArtifactPlatform>
+    <ArtifactConfigurationPlatform>$(ArtifactConfiguration)-$(ArtifactPlatform)</ArtifactConfigurationPlatform>
+    <BaseOutputPath>$(ArtifactsPath)bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(ArtifactsPath)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <ArtifactsBinPath>$(ArtifactsPath)bin\$(MSBuildProjectName)\$(ArtifactConfigurationPlatform)\</ArtifactsBinPath>
+    <ArtifactsObjPath>$(ArtifactsPath)obj\$(MSBuildProjectName)\$(ArtifactConfigurationPlatform)\</ArtifactsObjPath>
+    <ArtifactsPublishPath>$(ArtifactsPath)publish\$(ArtifactConfiguration)\</ArtifactsPublishPath>
   </PropertyGroup>
 </Project>
