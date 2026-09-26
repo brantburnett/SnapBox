@@ -33,7 +33,7 @@
 #define IDM_COPY                        1101
 #define IDM_SAVE                        1102
 #define IDM_QUICKSAVE                   1104
-#define IDM_EMAIL                       1105
+#define IDM_SHARE                       1105
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
