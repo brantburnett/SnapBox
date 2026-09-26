@@ -52,7 +52,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     initCtrls.dwICC = ICC_STANDARD_CLASSES | ICC_UPDOWN_CLASS | ICC_LINK_CLASS;
     InitCommonControlsEx(&initCtrls);
 
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    OleInitialize(NULL);
 
     GdiplusStartupInput input;
     GdiplusStartup(&gdiplusToken, &input, NULL);
@@ -86,7 +86,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         ShutdownSizeMarks();
         CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
-        CoUninitialize();
+        OleUninitialize();
         return 1;
     }
 
@@ -100,7 +100,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
         XMLPlatformUtils::Terminate();
-        CoUninitialize();
+        OleUninitialize();
         return FALSE;
     }
 
@@ -140,7 +140,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
     XMLPlatformUtils::Terminate();
 
-    CoUninitialize();
+    OleUninitialize();
 
     return (int) msg.wParam;
 }
