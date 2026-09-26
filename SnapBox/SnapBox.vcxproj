@@ -212,6 +212,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalOptions>/await:strict %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>WindowsApp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
     <Manifest>
       <AdditionalManifestFiles>$(ProjectDir)SnapBox.exe.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
@@ -221,7 +228,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CaptureBox.cpp" />
-    <ClCompile Include="Email.cpp" />
+    <ClCompile Include="Share.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="SizeMarks.cpp" />
     <ClCompile Include="SnapBox.cpp" />
@@ -236,7 +243,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CaptureBox.h" />
-    <ClInclude Include="Email.h" />
+    <ClInclude Include="Share.h" />
     <ClInclude Include="LimitSingleInstance.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="Resource.h" />

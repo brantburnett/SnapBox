@@ -3,7 +3,7 @@
 #include "SnapBox.h"
 #include "SnapBoxBase.h"
 #include "Options.h"
-#include "Email.h"
+#include "Share.h"
 #include "SizeMarks.h"
 
 #include <vector>
@@ -921,7 +921,7 @@ void StartCopyDrag(HWND hWnd)
     }
 }
 
-void EmailCaptureBox(HWND hWnd)
+void ShareCaptureBox(HWND hWnd)
 {
     TCHAR szPath[MAX_PATH];
     if (!GetTempPath(MAX_PATH, szPath))
@@ -933,7 +933,7 @@ void EmailCaptureBox(HWND hWnd)
     GetFileName(szPath, options.defaultSaveType);
     SaveFile(hWnd, szPath, options.defaultSaveType);
 
-    EmailFile(szPath);
+    ShareFile(hWnd, szPath);
 }
 
 void AdjustRect(const PCAPTUREBOXINFO info, RECT &rect)
@@ -1578,8 +1578,8 @@ LRESULT CALLBACK CaptureBoxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         case IDM_QUICKSAVE:
             QuickSaveCaptureBox(hWnd);
             break;
-        case IDM_EMAIL:
-            EmailCaptureBox(hWnd);
+        case IDM_SHARE:
+            ShareCaptureBox(hWnd);
             break;
         case IDM_CLOSE:
             DestroyWindow(hWnd);

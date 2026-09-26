@@ -6,6 +6,7 @@
 #include "SnapBoxBase.h"
 #include "CaptureBox.h"
 #include "Options.h"
+#include "Share.h"
 #include "SnapHook.h"
 #include "SizeMarks.h"
 #include "LimitSingleInstance.h"
@@ -52,7 +53,20 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     initCtrls.dwICC = ICC_STANDARD_CLASSES | ICC_UPDOWN_CLASS | ICC_LINK_CLASS;
     InitCommonControlsEx(&initCtrls);
 
-    OleInitialize(NULL);
+    HRESULT oleInitializeResult = OleInitialize(NULL);
+    if (FAILED(oleInitializeResult))
+    {
+        MessageBox(NULL, _T("Unable to initialize OLE support."), _T("SnapBox"), MB_ICONERROR | MB_OK);
+        return 1;
+    }
+
+    HRESULT initializeResult = RoInitialize(RO_INIT_SINGLETHREADED);
+    if (FAILED(initializeResult))
+    {
+        MessageBox(NULL, _T("Unable to initialize Windows Runtime support."), _T("SnapBox"), MB_ICONERROR | MB_OK);
+        OleUninitialize();
+        return 1;
+    }
 
     GdiplusStartupInput input;
     GdiplusStartup(&gdiplusToken, &input, NULL);
@@ -86,6 +100,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         ShutdownSizeMarks();
         CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
+        CleanupShare();
+        RoUninitialize();
         OleUninitialize();
         return 1;
     }
@@ -100,6 +116,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         CleanupCaptureBoxResources();
         GdiplusShutdown(gdiplusToken);
         XMLPlatformUtils::Terminate();
+        CleanupShare();
+        RoUninitialize();
         OleUninitialize();
         return FALSE;
     }
@@ -140,6 +158,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
     XMLPlatformUtils::Terminate();
 
+    CleanupShare();
+    RoUninitialize();
     OleUninitialize();
 
     return (int) msg.wParam;

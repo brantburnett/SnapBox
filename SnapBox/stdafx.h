@@ -19,7 +19,14 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <commctrl.h>
-#include <mapi.h>
+#include <shobjidl_core.h>
+#include <roapi.h>
+
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #include <string>
 

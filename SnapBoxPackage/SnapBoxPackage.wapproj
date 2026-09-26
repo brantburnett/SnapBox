@@ -3,7 +3,6 @@
   <PropertyGroup Condition="'$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0'">
     <VisualStudioVersion>15.0</VisualStudioVersion>
   </PropertyGroup>
-
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -22,16 +21,13 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-
   <PropertyGroup>
     <WapProjPath Condition="'$(WapProjPath)' == ''">$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\</WapProjPath>
     <DebuggerType>NativeOnly</DebuggerType>
     <BackgroundTaskDebugEngines>NativeOnly</BackgroundTaskDebugEngines>
     <WinUISDKReferences>false</WinUISDKReferences>
   </PropertyGroup>
-
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.props" />
-
   <PropertyGroup>
     <ProjectGuid>{C672C021-2981-4B32-9C92-5F2E670E4B8D}</ProjectGuid>
     <TargetPlatformVersion>10.0.26100.0</TargetPlatformVersion>
@@ -46,8 +42,8 @@
     <IntermediateOutputPath>$(ArtifactsObjPath)</IntermediateOutputPath>
     <EntryPointExe>SnapBox.exe</EntryPointExe>
     <SnapBoxOutputDirectory>$(MSBuildThisFileDirectory)..\artifacts\bin\SnapBox\$(ArtifactConfigurationPlatform)\</SnapBoxOutputDirectory>
+    <EntryPointProjectUniqueName>..\SnapBox\SnapBox.vcxproj</EntryPointProjectUniqueName>
   </PropertyGroup>
-
   <ItemGroup>
     <None Include="Package.appxmanifest">
       <SubType>Designer</SubType>
@@ -69,29 +65,20 @@
       <Link>Images\Wide310x150Logo.png</Link>
     </Content>
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\SnapBox\SnapBox.vcxproj" ReferenceOutputAssembly="false">
       <TreatAsPackageReference>false</TreatAsPackageReference>
       <SkipGetTargetFrameworkProperties>True</SkipGetTargetFrameworkProperties>
     </ProjectReference>
   </ItemGroup>
-
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
-
-  <Target Name="GeneratePackageManifest"
-          BeforeTargets="_ValidatePresenceOfAppxManifestItems;_CopyCurrentProjectAppxManifestOverride">
+  <Target Name="GeneratePackageManifest" BeforeTargets="_ValidatePresenceOfAppxManifestItems;_CopyCurrentProjectAppxManifestOverride">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\tools\Update-MsixPackageManifest.ps1&quot; -SourcePath &quot;$(MSBuildThisFileDirectory)Package.appxmanifest&quot; -DestinationPath &quot;$(IntermediateOutputPath)Package.appxmanifest&quot; -Publisher &quot;$(MSIXPackagePublisher)&quot; -Version &quot;$(MSIXPackageVersion)&quot; -Architecture &quot;$(Platform)&quot;" />
   </Target>
-
-  <Target Name="NormalizePackageDependencies"
-          BeforeTargets="_GenerateAppxPackageRecipeFile"
-          DependsOnTargets="GeneratePackageManifest">
+  <Target Name="NormalizePackageDependencies" BeforeTargets="_GenerateAppxPackageRecipeFile" DependsOnTargets="GeneratePackageManifest">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\tools\Update-MsixPackageManifest.ps1&quot; -SourcePath &quot;$(FinalAppxManifestName)&quot; -DestinationPath &quot;$(FinalAppxManifestName)&quot; -Publisher &quot;$(MSIXPackagePublisher)&quot; -Version &quot;$(MSIXPackageVersion)&quot; -Architecture &quot;$(Platform)&quot; -RemovePackageDependencies" />
   </Target>
-
-  <Target Name="IncludeSnapBoxPayload"
-          BeforeTargets="_ConvertItems">
+  <Target Name="IncludeSnapBoxPayload" BeforeTargets="_ConvertItems">
     <ItemGroup>
       <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.exe" />
       <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.dll" />

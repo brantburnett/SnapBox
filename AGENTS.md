@@ -97,7 +97,9 @@ Intermediate files are stored under
 `artifacts\obj\<project>\<configuration>-<architecture>\`. All configuration
 and architecture path components are lowercase. Local package builds are
 unsigned. CI signs the executable, each MSIX, and the final bundle only in the
-`artifact-signing` environment.
+`artifact-signing` environment. Before archiving signed MSIX packages, CI
+validates the final archive manifest's resource language and verifies that the
+package identity publisher matches the signing certificate subject.
 
 The `artifact-signing` GitHub environment requires the existing Azure
 federated-credential secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
