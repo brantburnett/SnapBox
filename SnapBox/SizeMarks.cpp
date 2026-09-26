@@ -4,12 +4,13 @@
 using namespace Gdiplus;
 
 #define SIZEMARK_PADDING		2
-#define SIZEMARK_ROUNDING		3
+#define SIZEMARK_HORIZONTALPADDING	3
+#define SIZEMARK_ROUNDING		4
 #define SIZEMARK_TRAPEZOID		3
 #define SIZEMARK_FONTSIZE		8
 #define SIZEMARK_CLOSEFONTSIZE	8
 #define SIZEMARK_CLOSEPADDING	3
-#define SIZEMARK_CLOSESPACING	4
+#define SIZEMARK_CLOSESPACING	2
 #define SIZEMARK_CLOSERIGHTPADDING	3
 #define SIZEMARK_CLOSECORNER	3
 
@@ -21,11 +22,12 @@ UINT sizeHeight = 0, closeGlyphHeight = 0, closeGlyphWidth = 0;
 RectF closeGlyphBounds;
 float fSizeHeight = 0;
 
-const Color SizeMarkColor1(0xcf, 0xce, 0xce);
-const Color SizeMarkColor2(0x99, 0x99, 0x99);
-const Color SizeMarkBorderColor(0, 0, 0);
-const Color CloseButtonHoverColor(0xc4, 0x2b, 0x1c);
-const Color CloseButtonPressedColor(0xa4, 0x26, 0x2c);
+const Color SizeMarkColor1(0x14, 0x7d, 0xe2);
+const Color SizeMarkColor2(0x35, 0xc2, 0xf1);
+const Color SizeMarkBorderColor(0xdd, 0xf5, 0xff);
+const Color SizeMarkTextColor(0, 0, 0);
+const Color CloseButtonHoverColor(0x35, 0xc2, 0xf1);
+const Color CloseButtonPressedColor(0x14, 0x7d, 0xe2);
 const WCHAR CloseGlyph[] = L"\xE8BB";
 
 void AddRoundedRectangle(GraphicsPath* path, const RectF& rect, REAL radius)
@@ -119,7 +121,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
         _tcscat_s(sizeStr, 20, _T("px"));
 
         g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
-        boundingBox.Width += SIZEMARK_PADDING*2;
+        boundingBox.Width += SIZEMARK_HORIZONTALPADDING*2;
         if (drawClose)
             boundingBox.Width += closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
 
@@ -127,7 +129,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
         {
             sizeStr[_tcslen(sizeStr)-2] = _T('\0');
             g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
-            boundingBox.Width += SIZEMARK_PADDING*2 + SIZEMARK_CLOSESPACING;
+            boundingBox.Width += SIZEMARK_HORIZONTALPADDING*2 + SIZEMARK_CLOSESPACING;
             if (drawClose)
                 boundingBox.Width += closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
         }
@@ -180,7 +182,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
             if (drawClose)
                 boundingBox.Width -= closeButtonWidth + SIZEMARK_CLOSESPACING + SIZEMARK_CLOSERIGHTPADDING;
 
-            brush = new SolidBrush(Color(opacityByte, 0, 0, 0));
+            brush = new SolidBrush(Color((SizeMarkTextColor.GetValue() & 0xffffff) | opacityArgb));
             g->DrawString(sizeStr, -1, sizeFont, boundingBox, sizeStringFormat, brush);
             delete brush;
 
@@ -214,8 +216,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
                     g->FillPath(&closeButtonBrush, &closePath);
                 }
 
-                BYTE closeGlyphColor = options->dwOptions & SIZEMARKOPTION_HOVERCLOSE ? 0xff : 0x00;
-                SolidBrush closeGlyphBrush(Color(opacityByte, closeGlyphColor, closeGlyphColor, closeGlyphColor));
+                SolidBrush closeGlyphBrush(Color((SizeMarkTextColor.GetValue() & 0xffffff) | opacityArgb));
                 PointF closeGlyphOrigin(
                     closeButtonRect.X + (closeButtonRect.Width - closeGlyphBounds.Width)/2 - closeGlyphBounds.X,
                     closeButtonRect.Y + (closeButtonRect.Height - closeGlyphBounds.Height)/2 - closeGlyphBounds.Y);
@@ -232,13 +233,13 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
         _tcscat_s(sizeStr, 20, _T("px"));
 
         g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
-        boundingBox.Width += SIZEMARK_PADDING*2;
+        boundingBox.Width += SIZEMARK_HORIZONTALPADDING*2;
 
         if (boundingBox.Width > height)
         {
             sizeStr[_tcslen(sizeStr)-2] = _T('\0');
             g->MeasureString(sizeStr, -1, sizeFont, PointF(0, 0), &boundingBox);
-            boundingBox.Width += SIZEMARK_PADDING*2;
+            boundingBox.Width += SIZEMARK_HORIZONTALPADDING*2;
         }
 
         if (boundingBox.Width <= height)
@@ -279,7 +280,7 @@ void DrawSizeMarks(Graphics* g, PCSIZEMARKOPTIONS options)
             g->DrawPath(pen, path);
             delete pen;
 
-            brush = new SolidBrush(Color(opacityByte, 0, 0, 0));
+            brush = new SolidBrush(Color((SizeMarkTextColor.GetValue() & 0xffffff) | opacityArgb));
             g->DrawString(sizeStr, -1, sizeFont, boundingBox, sizeStringFormat, brush);
             delete brush;
 
