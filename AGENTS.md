@@ -25,7 +25,7 @@ bundle or silently install the runtime.
 
 - Windows 10 version 1809 or later, or Windows 11
 - Visual Studio with the **Desktop development with C++** workload, the
-  `v145` toolset, a Windows 10/11 SDK version 10.0.22621.0 or later, and
+  `v145` toolset, a Windows 10/11 SDK version 10.0.26100.0 or later, and
   Visual Studio's MSIX packaging tools
 - vcpkg; use the copy supplied with Visual Studio or a separately bootstrapped
   vcpkg executable
