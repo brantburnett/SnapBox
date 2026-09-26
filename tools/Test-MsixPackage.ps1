@@ -63,7 +63,18 @@ try {
             }
 
             $signedCms = [System.Security.Cryptography.Pkcs.SignedCms]::new()
-            $signedCms.Decode($signatureStream.ToArray())
+            $signatureBytes = $signatureStream.ToArray()
+            if ($signatureBytes.Length -le 4 -or
+                $signatureBytes[0] -ne [byte][char]'P' -or
+                $signatureBytes[1] -ne [byte][char]'K' -or
+                $signatureBytes[2] -ne [byte][char]'C' -or
+                $signatureBytes[3] -ne [byte][char]'X') {
+                throw "Package '$packagePath' has an invalid AppxSignature.p7x header."
+            }
+
+            $cmsBytes = [byte[]]::new($signatureBytes.Length - 4)
+            [System.Array]::Copy($signatureBytes, 4, $cmsBytes, 0, $cmsBytes.Length)
+            $signedCms.Decode($cmsBytes)
             $signer = $signedCms.SignerInfos[0].Certificate.Subject
 
             if (-not [string]::Equals($identity.Publisher, $signer, [System.StringComparison]::OrdinalIgnoreCase)) {
