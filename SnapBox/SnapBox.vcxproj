@@ -71,30 +71,26 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(VersionCore)' != ''">
     <_ProjectFileVersion>18.0.0.0</_ProjectFileVersion>
     <ResourceVersionRevision Condition="$([System.Version]::Parse('$(VersionCore)').Revision) == -1">0</ResourceVersionRevision>
     <ResourceVersionRevision Condition="$([System.Version]::Parse('$(VersionCore)').Revision) != -1">$([System.Version]::Parse('$(VersionCore)').Revision)</ResourceVersionRevision>
     <ResourceVersion>$([System.Version]::Parse('$(VersionCore)').Major),$([System.Version]::Parse('$(VersionCore)').Minor),$([System.Version]::Parse('$(VersionCore)').Build),$(ResourceVersionRevision)</ResourceVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(ArtifactsBinPath)</OutDir>
+    <IntDir>$(ArtifactsObjPath)</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
