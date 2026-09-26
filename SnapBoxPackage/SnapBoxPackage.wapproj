@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0'">
+    <VisualStudioVersion>15.0</VisualStudioVersion>
+  </PropertyGroup>
+
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <WapProjPath Condition="'$(WapProjPath)' == ''">$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\</WapProjPath>
+    <DebuggerType>NativeOnly</DebuggerType>
+    <BackgroundTaskDebugEngines>NativeOnly</BackgroundTaskDebugEngines>
+    <WinUISDKReferences>false</WinUISDKReferences>
+  </PropertyGroup>
+
+  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.props" />
+
+  <PropertyGroup>
+    <ProjectGuid>{C672C021-2981-4B32-9C92-5F2E670E4B8D}</ProjectGuid>
+    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+    <UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
+    <AppxBundle>Never</AppxBundle>
+    <AppxPackageDir>$(ArtifactsPublishPath)</AppxPackageDir>
+    <OutputPath>$(ArtifactsBinPath)</OutputPath>
+    <IntermediateOutputPath>$(ArtifactsObjPath)</IntermediateOutputPath>
+    <EntryPointExe>SnapBox.exe</EntryPointExe>
+    <SnapBoxOutputDirectory>$(MSBuildThisFileDirectory)..\artifacts\bin\SnapBox\$(ArtifactConfigurationPlatform)\</SnapBoxOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </None>
+    <CustomAppxManifest Include="$(IntermediateOutputPath)Package.appxmanifest" />
+    <Content Include="..\images\SplashScreen.png">
+      <Link>Images\SplashScreen.png</Link>
+    </Content>
+    <Content Include="..\images\Square150x150Logo.png">
+      <Link>Images\Square150x150Logo.png</Link>
+    </Content>
+    <Content Include="..\images\Square44x44Logo.png">
+      <Link>Images\Square44x44Logo.png</Link>
+    </Content>
+    <Content Include="..\images\StoreLogo.png">
+      <Link>Images\StoreLogo.png</Link>
+    </Content>
+    <Content Include="..\images\Wide310x150Logo.png">
+      <Link>Images\Wide310x150Logo.png</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SnapBox\SnapBox.vcxproj" ReferenceOutputAssembly="false">
+      <TreatAsPackageReference>false</TreatAsPackageReference>
+      <SkipGetTargetFrameworkProperties>True</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
+
+  <Target Name="GeneratePackageManifest"
+          BeforeTargets="_ValidatePresenceOfAppxManifestItems;_CopyCurrentProjectAppxManifestOverride">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\tools\Update-MsixPackageManifest.ps1&quot; -SourcePath &quot;$(MSBuildThisFileDirectory)Package.appxmanifest&quot; -DestinationPath &quot;$(IntermediateOutputPath)Package.appxmanifest&quot; -Publisher &quot;$(MSIXPackagePublisher)&quot; -Version &quot;$(MSIXPackageVersion)&quot; -Architecture &quot;$(Platform)&quot;" />
+  </Target>
+
+  <Target Name="NormalizePackageDependencies"
+          BeforeTargets="_GenerateAppxPackageRecipeFile"
+          DependsOnTargets="GeneratePackageManifest">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\tools\Update-MsixPackageManifest.ps1&quot; -SourcePath &quot;$(FinalAppxManifestName)&quot; -DestinationPath &quot;$(FinalAppxManifestName)&quot; -Publisher &quot;$(MSIXPackagePublisher)&quot; -Version &quot;$(MSIXPackageVersion)&quot; -Architecture &quot;$(Platform)&quot; -RemovePackageDependencies" />
+  </Target>
+
+  <Target Name="IncludeSnapBoxPayload"
+          BeforeTargets="_ConvertItems">
+    <ItemGroup>
+      <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.exe" />
+      <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.dll" />
+      <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.pri" />
+      <_FilteredNonWapProjProjectOutput Include="$(SnapBoxOutputDirectory)*.winmd" />
+    </ItemGroup>
+  </Target>
+</Project>

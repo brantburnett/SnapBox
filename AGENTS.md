@@ -3,12 +3,12 @@
 ## Repository overview
 
 SnapBox is a native Windows desktop screenshot utility. The application is a
-Unicode Win32 C++ project; its installer is a WiX project. The solution is
+Unicode Win32 C++ project; its installer is an MSIX packaging project. The solution is
 `SnapBox.slnx`, with these projects:
 
 - `SnapBox\SnapBox.vcxproj`: application (`Debug|x64`, `Release|x64`,
   `Debug|ARM64`, and `Release|ARM64`)
-- `SnapBoxInstall\SnapBoxInstall.wixproj`: MSI installer, built as part of the
+- `SnapBoxPackage\SnapBoxPackage.wapproj`: MSIX package, built as part of the
   solution
 
 The native project uses the `v145` toolset, the Windows App SDK, and
@@ -16,19 +16,20 @@ manifest-mode vcpkg. Its only vcpkg dependency is Xerces-C, installed using
 the `x64-windows-static` or `arm64-windows-static` triplet in
 `vcpkg_installed\`.
 
-SnapBox is an unpackaged, framework-dependent Windows App SDK application.
-The SDK bootstrapper initializes before the application's entry point. If the
-matching runtime is missing, Windows displays acquisition UI; the MSI does not
+SnapBox remains framework-dependent for the Windows App SDK. The SDK
+bootstrapper initializes before the application's entry point. If the matching
+runtime is missing, Windows displays acquisition UI; the MSIX package does not
 bundle or silently install the runtime.
 
 ## Prerequisites
 
 - Windows 10 version 1809 or later, or Windows 11
 - Visual Studio with the **Desktop development with C++** workload, the
-  `v145` toolset, and a Windows 10/11 SDK
+  `v145` toolset, a Windows 10/11 SDK version 10.0.22621.0 or later, and
+  Visual Studio's MSIX packaging tools
 - vcpkg; use the copy supplied with Visual Studio or a separately bootstrapped
   vcpkg executable
-- .NET SDK (required by the WiX Toolset SDK project)
+- Visual Studio's MSIX packaging tools
 - Network access on the first restore to download vcpkg and NuGet packages
 
 Do not check in `vcpkg_installed\`, build output, or Visual Studio user files;
@@ -53,7 +54,8 @@ vcpkg install --triplet arm64-windows-static
 
 If `vcpkg` is not on `PATH`, Visual Studio installs it at a path similar to
 `C:\Program Files\Microsoft Visual Studio\<version>\<edition>\VC\vcpkg\vcpkg.exe`.
-Then build the solution. `/restore` restores the WiX NuGet packages.
+Then build the solution. `/restore` restores the Windows App SDK NuGet
+packages.
 
 ```bat
 msbuild SnapBox.slnx /restore /m /p:Configuration=Debug /p:Platform=x64
@@ -71,7 +73,7 @@ For an ARM64 release build:
 msbuild SnapBox.slnx /restore /m /p:Configuration=Release /p:Platform=ARM64
 ```
 
-To build only the executable, which avoids packaging the MSI:
+To build only the executable, which avoids packaging MSIX:
 
 ```bat
 msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Debug /p:Platform=x64
@@ -80,14 +82,40 @@ msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Debug /p:Platform=x
 The application is emitted to
 `artifacts\bin\SnapBox\<configuration>-<architecture>\SnapBox.exe` (for
 example, `artifacts\bin\SnapBox\release-arm64\SnapBox.exe`). The solution
-build also produces an MSI under `artifacts\publish\<configuration>\`, with
-the platform in its name (for example,
-`artifacts\publish\release\SnapBox-<version>-arm64.msi`). Intermediate files
-are stored under `artifacts\obj\<project>\<configuration>-<architecture>\`.
-All configuration and architecture path components are lowercase. The Windows
-App SDK NuGet package is restored by MSBuild's `/restore` switch; run the
-executable on a machine without its matching runtime to validate the
-Windows-provided acquisition UI.
+build also produces an architecture-specific MSIX under
+`artifacts\publish\<configuration>\`. Build both architectures, then create a
+bundle with:
+
+```bat
+powershell -File tools\New-MsixBundle.ps1 ^
+  -PackageDirectory artifacts\publish\release ^
+  -Version <version> ^
+  -OutputPath artifacts\publish\release\SnapBox-<version>.msixbundle
+```
+
+Intermediate files are stored under
+`artifacts\obj\<project>\<configuration>-<architecture>\`. All configuration
+and architecture path components are lowercase. Local package builds are
+unsigned. CI signs the executable, each MSIX, and the final bundle only in the
+`artifact-signing` environment.
+
+The `artifact-signing` GitHub environment requires the existing Azure
+federated-credential secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
+`AZURE_SUBSCRIPTION_ID`, and the existing
+`AZURE_ARTIFACT_SIGNING_ENDPOINT`,
+`AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME`, and
+`AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME` variables. It additionally
+requires `MSIX_PACKAGE_PUBLISHER`, containing the exact subject distinguished
+name of the Azure Trusted Signing certificate profile. Obtain the exact value
+from a previously signed executable with:
+
+```powershell
+(Get-AuthenticodeSignature .\SnapBox.exe).SignerCertificate.Subject
+```
+
+The MSIX manifest publisher must exactly match that subject. MSIX provides the
+Start menu entry; it intentionally does not replace the removed WiX desktop or
+startup shortcut selections.
 
 There is no automated test project or test runner in this repository. Validate
 native changes by building the affected configuration, and manually exercise
@@ -106,7 +134,9 @@ or installer content.
 - Preserve the project runtime-library selection: `/MTd` for Debug and `/MT`
   for Release. New native dependencies must be compatible with the static
   vcpkg triplet.
-- Update `SnapBoxInstall\Product.wxs` when installable files, product metadata,
-  or installer behavior changes. Do not hand-edit generated build output.
+- Update `SnapBoxPackage\Package.appxmanifest` and
+  `SnapBoxPackage\SnapBoxPackage.wapproj` when package identity, installable
+  files, or installer behavior changes. Do not hand-edit generated build
+  output.
 - Use Unicode Win32 APIs and project conventions (`TCHAR`, `wstring`, and
   resource identifiers) when modifying existing UI code.

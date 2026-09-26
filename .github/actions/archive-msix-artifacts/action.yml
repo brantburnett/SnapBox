@@ -1,0 +1,33 @@
+name: Archive MSIX artifacts
+description: Uploads a platform's MSIX package and, optionally, its runtime payload.
+
+inputs:
+  platform:
+    description: Build platform, such as x64 or ARM64.
+    required: true
+  include-runtime-payload:
+    description: Whether to upload the executable and runtime files.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Archive runtime payload
+      if: ${{ inputs.include-runtime-payload == 'true' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: snapbox-runtime-${{ inputs.platform }}
+        path: |
+          artifacts\bin\SnapBox\release-*\*.exe
+          artifacts\bin\SnapBox\release-*\*.dll
+          artifacts\bin\SnapBox\release-*\*.pri
+          artifacts\bin\SnapBox\release-*\*.winmd
+        if-no-files-found: error
+
+    - name: Archive MSIX package
+      uses: actions/upload-artifact@v7
+      with:
+        name: snapbox-msix-${{ inputs.platform }}
+        path: artifacts\publish\release\**\*.msix
+        if-no-files-found: error

@@ -53,25 +53,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - id: version
-        uses: CenterEdge/actions/dotnet/nuget-version@4f48ad964c672c289002dbb4c1e4a641ba19c771 # main
+      - uses: ./.github/actions/setup-windows-build
         with:
-          tag-prefix: '[vV]'
-
-      - uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
-        with:
-          runVcpkgInstall: false
-          vcpkgGitCommitId: 0899c338be35b23b6c394b13ecef4fb1abe1cdfb
-
-      - uses: microsoft/setup-msbuild@v3
-
-      - name: Restore vcpkg dependencies
-        shell: pwsh
-        run: vcpkg install --triplet "$("${{ matrix.platform }}".ToLowerInvariant())-windows-static"
+          platform: ${{ matrix.platform }}
 
       - name: Build executable
         shell: pwsh
-        run: msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ steps.version.outputs.version }}"
+        run: msbuild SnapBox\SnapBox.vcxproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ needs.prepare.outputs.version }}"
 
       - id: executable
         name: Resolve executable path
@@ -108,18 +96,25 @@ jobs:
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
 
-      - name: Build installer
+      - name: Validate MSIX publisher
         shell: pwsh
-        run: msbuild SnapBoxInstall\SnapBoxInstall.wixproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ steps.version.outputs.version }}"
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${{ vars.MSIX_PACKAGE_PUBLISHER }}")) {
+            throw "The artifact-signing environment must define MSIX_PACKAGE_PUBLISHER."
+          }
 
-      - name: Sign installer
+      - name: Build MSIX package
+        shell: pwsh
+        run: msbuild SnapBoxPackage\SnapBoxPackage.wapproj /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:BuildProjectReferences=false "/p:SolutionDir=${{ github.workspace }}\" "/p:Version=${{ needs.prepare.outputs.version }}" "/p:MSIXPackagePublisher=${{ vars.MSIX_PACKAGE_PUBLISHER }}"
+
+      - name: Sign MSIX package
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
           signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
           files-folder: ${{ github.workspace }}\artifacts\publish\release
-          files-folder-filter: '*.msi'
+          files-folder-filter: '*.msix'
           files-folder-recurse: true
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
@@ -135,27 +130,84 @@ jobs:
           exclude-azure-developer-cli-credential: true
           exclude-interactive-browser-credential: true
 
-      - name: Archive installer
+      - uses: ./.github/actions/archive-msix-artifacts
+        with:
+          platform: ${{ matrix.platform }}
+
+  bundle:
+    needs:
+      - prepare
+      - build
+    runs-on: windows-latest
+    environment: artifact-signing
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download signed MSIX packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: snapbox-msix-*
+          path: packages
+
+      - name: Create MSIX bundle
+        shell: pwsh
+        run: tools\New-MsixBundle.ps1 -PackageDirectory packages -Version "${{ needs.prepare.outputs.version }}" -OutputPath "artifacts\publish\release\SnapBox-${{ needs.prepare.outputs.version }}.msixbundle"
+
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign MSIX bundle
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\artifacts\publish\release
+          files-folder-filter: '*.msixbundle'
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Archive MSIX bundle
         uses: actions/upload-artifact@v7
         with:
-          name: snapbox-installer-${{ matrix.platform }}
-          path: artifacts\publish\release\*.msi
+          name: snapbox-msix-bundle
+          path: artifacts\publish\release\*.msixbundle
           if-no-files-found: error
 
   publish:
     needs:
       - prepare
-      - build
+      - bundle
     runs-on: windows-latest
     permissions:
       contents: write
     steps:
-      - name: Download installers
+      - name: Download MSIX bundle
         uses: actions/download-artifact@v8
         with:
-          pattern: snapbox-installer-*
+          name: snapbox-msix-bundle
           path: release
-          merge-multiple: true
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
@@ -163,4 +215,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: SnapBox ${{ needs.prepare.outputs.version }}
           generate_release_notes: true
-          files: release\*.msi
+          files: release\*.msixbundle

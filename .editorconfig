@@ -7,6 +7,6 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 charset = utf-8
 
-[*.{vcproj,vcxproj,wixproj,wxi,wxs,config}]
+[*.{vcproj,vcxproj,wapproj,config}]
 indent_size = 2
 insert_final_newline = false
