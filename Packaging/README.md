@@ -13,6 +13,11 @@ The package identity is intentionally supplied at build time:
 | `PackagePublisher` | `vars.MSIX_PACKAGE_PUBLISHER` | Must exactly match the Azure Artifact Signing certificate subject. |
 | `PackagePublisherDisplayName` | `vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME` | Displayed publisher name. |
 
+Pull-request builds use the fixed temporary `BurnettSoft.SnapBox` /
+`CN=BurnettSoft` identity because their MSIX packages are unsigned validation
+artifacts. Main and tag release builds require the configured values above so
+their signed bundles have the intended identity.
+
 The current manifest uses the Windows App Runtime `Microsoft.WindowsAppRuntime.2`
 framework dependency at version `2.5.1.0`, matching the
 `Microsoft.WindowsAppSDK` NuGet package version in `SnapBox.vcxproj`.

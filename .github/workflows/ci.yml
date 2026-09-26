@@ -64,25 +64,12 @@ jobs:
         shell: pwsh
         run: msbuild SnapBox.slnx /restore /m /p:Configuration=Release /p:Platform=${{ matrix.platform }} "/p:Version=${{ steps.version.outputs.version }}"
 
-      - name: Validate MSIX identity configuration
+      - name: Package unsigned MSIX
         shell: pwsh
         env:
-          MSIX_PACKAGE_IDENTITY_NAME: ${{ vars.MSIX_PACKAGE_IDENTITY_NAME }}
-          MSIX_PACKAGE_PUBLISHER: ${{ vars.MSIX_PACKAGE_PUBLISHER }}
-          MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME }}
-        run: |
-          foreach ($name in 'MSIX_PACKAGE_IDENTITY_NAME', 'MSIX_PACKAGE_PUBLISHER', 'MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME') {
-            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-              throw "Required GitHub configuration variable '$name' is not set."
-            }
-          }
-
-      - name: Package MSIX
-        shell: pwsh
-        env:
-          MSIX_PACKAGE_IDENTITY_NAME: ${{ vars.MSIX_PACKAGE_IDENTITY_NAME }}
-          MSIX_PACKAGE_PUBLISHER: ${{ vars.MSIX_PACKAGE_PUBLISHER }}
-          MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME }}
+          MSIX_PACKAGE_IDENTITY_NAME: BurnettSoft.SnapBox
+          MSIX_PACKAGE_PUBLISHER: CN=BurnettSoft
+          MSIX_PACKAGE_PUBLISHER_DISPLAY_NAME: BurnettSoft
         run: >
           .\tools\New-SnapBoxMsix.ps1
           -Platform ${{ matrix.platform }}
