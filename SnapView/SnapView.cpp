@@ -156,9 +156,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
     hNotifyMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_NOTIFYICONMENU));
     hCaptureMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDC_CAPTUREMENU));
-    InitMenuIcons();
-    ApplyMenuIcons(hNotifyMenu);
-    ApplyMenuIcons(hCaptureMenu);
 
     hCursorArrow = LoadCursor(NULL, IDC_ARROW);
     hCursorMove	= LoadCursor(NULL, IDC_SIZEALL);

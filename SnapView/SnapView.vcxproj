@@ -108,7 +108,7 @@
       <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -135,7 +135,7 @@
       <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -163,7 +163,7 @@
       <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
@@ -190,7 +190,7 @@
       <PreprocessorDefinitions>_UNICODE;UNICODE;_WIN64;VERSION=$(ResourceVersion);VERSION_STRING=\"$(Version)\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;comctl32.lib;gdiplus.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

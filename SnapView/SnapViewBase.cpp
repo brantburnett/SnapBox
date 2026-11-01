@@ -2,6 +2,7 @@
 #include "SnapViewBase.h"
 #include "SnapView.h"
 #include "CaptureBox.h"
+#include "MenuIcons.h"
 #include "OptionsProcess.h"
 #include <initguid.h>
 
@@ -147,6 +148,7 @@ void ParseNotifyIconCommand(HWND hWnd, WPARAM wParam, LPARAM lParam)
             EnableMenuItem(hPopup, IDM_REOPEN, savedCaptureBoxes > 0 ? MF_ENABLED : MF_GRAYED);
 
             GetCursorPos(&pos);
+            ApplyMenuIcons(hNotifyMenu, pos);
 
             menuUp = true;
             SetForegroundWindow(hWnd);
