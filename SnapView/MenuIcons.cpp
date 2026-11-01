@@ -2,6 +2,8 @@
 #include "MenuIcons.h"
 #include "resource.h"
 
+#include <shellscalingapi.h>
+
 using namespace Gdiplus;
 
 namespace
@@ -36,6 +38,9 @@ namespace
         { IDM_QUICKSAVE, 0xE74E, 0xE74E, NULL },  // Save
         { IDM_SHARE, 0xE72D, 0xE72D, NULL },      // Share
     };
+
+    // The DPI the icon bitmaps were rendered at, or 0 before the first render.
+    UINT iconDpi = 0;
 
     int CALLBACK FontExistsProc(const LOGFONT*, const TEXTMETRIC*, DWORD, LPARAM lParam)
     {
@@ -96,20 +101,27 @@ namespace
     }
 }
 
-void InitMenuIcons()
+void ApplyMenuIcons(HMENU hMenu, POINT pt)
 {
-    bool useFluentIcons = FontExists(FluentIconsFont);
-    FontFamily fontFamily(useFluentIcons ? FluentIconsFont : Mdl2AssetsFont);
+    // SnapView is Per-Monitor V2 DPI aware, so a popup menu is laid out at
+    // the DPI of the monitor it opens on.
+    UINT dpiX = USER_DEFAULT_SCREEN_DPI, dpiY = USER_DEFAULT_SCREEN_DPI;
+    GetDpiForMonitor(MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
 
-    // SnapView is system DPI aware, so menus are laid out at the system DPI.
-    int size = GetSystemMetricsForDpi(SM_CXSMICON, GetDpiForSystem());
+    if (dpiX != iconDpi)
+    {
+        CleanupMenuIcons();
 
-    for (auto& icon : menuIcons)
-        icon.hBitmap = CreateGlyphBitmap(fontFamily, useFluentIcons ? icon.fluentGlyph : icon.mdl2Glyph, size);
-}
+        bool useFluentIcons = FontExists(FluentIconsFont);
+        FontFamily fontFamily(useFluentIcons ? FluentIconsFont : Mdl2AssetsFont);
+        int size = GetSystemMetricsForDpi(SM_CXSMICON, dpiX);
 
-void ApplyMenuIcons(HMENU hMenu)
-{
+        for (auto& icon : menuIcons)
+            icon.hBitmap = CreateGlyphBitmap(fontFamily, useFluentIcons ? icon.fluentGlyph : icon.mdl2Glyph, size);
+
+        iconDpi = dpiX;
+    }
+
     HMENU hPopup = GetSubMenu(hMenu, 0);
 
     MENUITEMINFO mii = {};
@@ -134,4 +146,6 @@ void CleanupMenuIcons()
             icon.hBitmap = NULL;
         }
     }
+
+    iconDpi = 0;
 }

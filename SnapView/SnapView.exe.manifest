@@ -22,10 +22,13 @@
     </dependentAssembly>
   </dependency>
 
-  <!-- Windows Settings for modern appearance -->
-  <asmv3:application xmlns:asmv3="http://schemas.microsoft.com/asm/v3/application">
-    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/asm/v3/windowsSettings">
-      <dpiAware>true</dpiAware>
+  <!-- Per-Monitor V2 DPI awareness. Capture works in physical pixels, so
+       Windows must not virtualize coordinates or bitmap-stretch windows on
+       monitors whose DPI differs from the system DPI fixed at sign-in. -->
+  <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+    <asmv3:windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
     </asmv3:windowsSettings>
   </asmv3:application>
 

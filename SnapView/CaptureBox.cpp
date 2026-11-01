@@ -2,6 +2,7 @@
 #include "CaptureBox.h"
 #include "SnapView.h"
 #include "SnapViewBase.h"
+#include "MenuIcons.h"
 #include "Options.h"
 #include "Share.h"
 #include "SizeMarks.h"
@@ -1617,6 +1618,7 @@ LRESULT CALLBACK CaptureBoxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         p.x = GET_X_LPARAM(lParam);
         p.y = GET_Y_LPARAM(lParam);
         ClientToScreen(hWnd, &p);
+        ApplyMenuIcons(hCaptureMenu, p);
         TrackPopupMenu(hPopup, TPM_RIGHTBUTTON, p.x, p.y, 0, hWnd, NULL);
         break;
     case WM_LBUTTONDOWN:
