@@ -114,7 +114,10 @@ void ApplyMenuIcons(HMENU hMenu, POINT pt)
 
         bool useFluentIcons = FontExists(FluentIconsFont);
         FontFamily fontFamily(useFluentIcons ? FluentIconsFont : Mdl2AssetsFont);
-        int size = GetSystemMetricsForDpi(SM_CXSMICON, dpiX);
+        // The menu stretches item bitmaps by the monitor DPI over the
+        // process's system DPI, which is fixed at launch. Render at the
+        // system DPI so the stretched icon matches the monitor's icon size.
+        int size = MulDiv(GetSystemMetricsForDpi(SM_CXSMICON, dpiX), GetDpiForSystem(), dpiX);
 
         for (auto& icon : menuIcons)
             icon.hBitmap = CreateGlyphBitmap(fontFamily, useFluentIcons ? icon.fluentGlyph : icon.mdl2Glyph, size);
